@@ -12,7 +12,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import fixtures
+from . import fixtures
 import logging
 import signal
 import testtools

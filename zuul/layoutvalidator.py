@@ -121,7 +121,7 @@ class LayoutSchema(object):
             for (i, val) in enumerate(value):
                 self.validateJob(val, path + [i])
         elif isinstance(value, dict):
-            for k, val in value.items():
+            for k, val in list(value.items()):
                 self.validateJob(val, path + [k])
         else:
             self.job_name.schema(value)
@@ -179,8 +179,8 @@ class LayoutSchema(object):
 
         schema = {}
         # Add the configured connections as available layout options
-        for connection_name, connection in connections.items():
-            for dname, dmod in connection_drivers.get(dtype, {}).items():
+        for connection_name, connection in list(connections.items()):
+            for dname, dmod in list(connection_drivers.get(dtype, {}).items()):
                 if connection.driver_name == dname:
                     schema[connection_name] = toList(__import__(
                         connection_drivers[dtype][dname],
@@ -188,7 +188,7 @@ class LayoutSchema(object):
 
         # Standard drivers are always available and don't require a unique
         # (connection) name
-        for dname, dmod in standard_drivers.get(dtype, {}).items():
+        for dname, dmod in list(standard_drivers.get(dtype, {}).items()):
             schema[dname] = toList(__import__(
                 standard_drivers[dtype][dname], fromlist=['']).getSchema())
 
@@ -308,11 +308,11 @@ class LayoutValidator(object):
             }
         }
 
-        for dname, d_conf in driver_data.items():
-            for connection_name, connection in connections.items():
+        for dname, d_conf in list(driver_data.items()):
+            for connection_name, connection in list(connections.items()):
                 if connection_name == dname:
                     if (connection.driver_name in
-                        connection_drivers.get(dtype, {}).keys()):
+                        list(connection_drivers.get(dtype, {}).keys())):
                         module = __import__(
                             connection_drivers[dtype][connection.driver_name],
                             fromlist=['']
@@ -320,7 +320,7 @@ class LayoutValidator(object):
                         if 'validate_conf' in dir(module):
                             module.validate_conf(d_conf)
                     break
-            if dname in standard_drivers.get(dtype, {}).keys():
+            if dname in list(standard_drivers.get(dtype, {}).keys()):
                 module = __import__(standard_drivers[dtype][dname],
                                     fromlist=[''])
                 if 'validate_conf' in dir(module):

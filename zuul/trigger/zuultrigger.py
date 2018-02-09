@@ -115,7 +115,7 @@ class ZuulTrigger(BaseTrigger):
     def postConfig(self):
         self._handle_parent_change_enqueued_events = False
         self._handle_project_change_merged_events = False
-        for pipeline in self.sched.layout.pipelines.values():
+        for pipeline in list(self.sched.layout.pipelines.values()):
             for ef in pipeline.manager.event_filters:
                 if ef.trigger != self:
                     continue

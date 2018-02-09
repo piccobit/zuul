@@ -80,7 +80,7 @@ class TestScheduler(ZuulTestCase):
 
     def test_initial_pipeline_gauges(self):
         "Test that each pipeline reported its length on start"
-        pipeline_names = self.sched.layout.pipelines.keys()
+        pipeline_names = list(self.sched.layout.pipelines.keys())
         self.assertNotEqual(len(pipeline_names), 0)
         for name in pipeline_names:
             self.assertReportedStat('zuul.pipeline.%s.current_changes' % name,
@@ -727,7 +727,7 @@ jobs:
         # triggering events.  Since it will have the changes cached
         # already (without approvals), we need to clear the cache
         # first.
-        for connection in self.connections.values():
+        for connection in list(self.connections.values()):
             connection.maintainCache([])
 
         self.worker.hold_jobs_in_build = True
@@ -796,9 +796,9 @@ jobs:
         self.fake_gerrit.addEvent(B.addApproval('APRV', 1))
         self.waitUntilSettled()
 
-        self.log.debug("len %s" % self.fake_gerrit._change_cache.keys())
+        self.log.debug("len %s" % list(self.fake_gerrit._change_cache.keys()))
         # there should still be changes in the cache
-        self.assertNotEqual(len(self.fake_gerrit._change_cache.keys()), 0)
+        self.assertNotEqual(len(list(self.fake_gerrit._change_cache.keys())), 0)
 
         self.worker.hold_jobs_in_build = False
         self.worker.release()
@@ -1483,7 +1483,7 @@ jobs:
         self.worker.build_history = []
 
         path = os.path.join(self.git_root, "org/project")
-        print(repack_repo(path))
+        print((repack_repo(path)))
 
         A = self.fake_gerrit.addFakeChange('org/project', 'master', 'A')
         A.addApproval('CRVW', 2)
@@ -1508,9 +1508,9 @@ jobs:
         A = self.fake_gerrit.addFakeChange('org/project1', 'master', 'A')
         A.addPatchset(large=True)
         path = os.path.join(self.upstream_root, "org/project1")
-        print(repack_repo(path))
+        print((repack_repo(path)))
         path = os.path.join(self.git_root, "org/project1")
-        print(repack_repo(path))
+        print((repack_repo(path)))
 
         A.addApproval('CRVW', 2)
         self.fake_gerrit.addEvent(A.addApproval('APRV', 1))
@@ -3555,7 +3555,7 @@ jobs:
             if time.time() - start > 10:
                 raise Exception("Timeout waiting for gearman server to report "
                                 + "back to the client")
-            build = self.launcher.builds.values()[0]
+            build = list(self.launcher.builds.values())[0]
             if build.worker.name == "My Worker":
                 break
             else:
@@ -3781,7 +3781,7 @@ For CI problems and help debugging, contact ci@example.org"""
             if time.time() - start > 10:
                 raise Exception("Timeout waiting for gearman server to report "
                                 + "back to the client")
-            build = self.launcher.builds.values()[0]
+            build = list(self.launcher.builds.values())[0]
             if build.worker.name == "My Worker":
                 break
             else:
@@ -3873,7 +3873,7 @@ For CI problems and help debugging, contact ci@example.org"""
         self.assertEqual(A.data['status'], 'NEW')
         self.assertEqual(B.data['status'], 'NEW')
 
-        for connection in self.connections.values():
+        for connection in list(self.connections.values()):
             connection.maintainCache([])
 
         self.worker.hold_jobs_in_build = True
@@ -4418,7 +4418,7 @@ For CI problems and help debugging, contact ci@example.org"""
         source = self.sched.layout.pipelines['gate'].source
         with testtools.ExpectedException(
             Exception, "Dependency cycle detected"):
-            source._getChange(u'1', u'2', True)
+            source._getChange('1', '2', True)
         self.log.debug("Got expected dependency cycle exception")
 
         # Now if we update B to remove the depends-on, everything
@@ -4426,8 +4426,8 @@ For CI problems and help debugging, contact ci@example.org"""
 
         B.addPatchset()
         B.data['commitMessage'] = '%s\n' % (B.subject,)
-        source._getChange(u'1', u'2', True)
-        source._getChange(u'2', u'2', True)
+        source._getChange('1', '2', True)
+        source._getChange('2', '2', True)
 
     def test_disable_at(self):
         "Test a pipeline will only report to the disabled trigger when failing"

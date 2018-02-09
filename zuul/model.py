@@ -113,7 +113,7 @@ class Pipeline(object):
         # cmp is not in python3, applied idiom from
         # http://python-future.org/compatible_idioms.html#cmp
         return sorted(
-            self.job_trees.keys(),
+            list(self.job_trees.keys()),
             key=lambda p: p.name)
 
     def addQueue(self, queue):
@@ -686,7 +686,7 @@ class BuildSet(object):
         return self.builds.get(job_name)
 
     def getBuilds(self):
-        keys = self.builds.keys()
+        keys = list(self.builds.keys())
         keys.sort()
         return [self.builds.get(x) for x in keys]
 
@@ -923,7 +923,7 @@ class Changeish(object):
         raise NotImplementedError()
 
     def filterJobs(self, jobs):
-        return filter(lambda job: job.changeMatches(self), jobs)
+        return [job for job in jobs if job.changeMatches(self)]
 
     def getRelatedChanges(self):
         return set()
@@ -1086,7 +1086,7 @@ class BaseFilter(object):
 
     def _tidy_approvals(self, approvals):
         for a in approvals:
-            for k, v in a.items():
+            for k, v in list(a.items()):
                 if k == 'username':
                     a['username'] = re.compile(v)
                 elif k in ['email', 'email-filter']:
@@ -1105,7 +1105,7 @@ class BaseFilter(object):
             return False
         now = time.time()
         by = approval.get('by', {})
-        for k, v in rapproval.items():
+        for k, v in list(rapproval.items()):
             if k == 'username':
                 if (not v.search(by.get('username', ''))):
                         return False
@@ -1211,7 +1211,7 @@ class EventFilter(BaseFilter):
             ret += ' ignore_deletes: %s' % self.ignore_deletes
         if self.event_approvals:
             ret += ' event_approvals: %s' % ', '.join(
-                ['%s:%s' % a for a in self.event_approvals.items()])
+                ['%s:%s' % a for a in list(self.event_approvals.items())])
         if self.required_approvals:
             ret += ' required_approvals: %s' % ', '.join(
                 ['%s' % a for a in self._required_approvals])
@@ -1301,7 +1301,7 @@ class EventFilter(BaseFilter):
                 return False
 
         # approvals are ANDed
-        for category, value in self.event_approvals.items():
+        for category, value in list(self.event_approvals.items()):
             matches_approval = False
             for eapproval in event.approvals:
                 if (normalizeCategory(eapproval['description']) ==

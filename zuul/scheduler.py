@@ -320,22 +320,22 @@ class Scheduler(threading.Thread):
         # load: whether or not to trigger the onLoad for the connection. This
         # is useful for not doing a full load during layout validation.
         self.connections = connections
-        for connection_name, connection in self.connections.items():
+        for connection_name, connection in list(self.connections.items()):
             connection.registerScheduler(self)
             if load:
                 connection.onLoad()
 
     def stopConnections(self):
-        for connection_name, connection in self.connections.items():
+        for connection_name, connection in list(self.connections.items()):
             connection.onStop()
 
     def _unloadDrivers(self):
-        for trigger in self.triggers.values():
+        for trigger in list(self.triggers.values()):
             trigger.stop()
         self.triggers = {}
-        for pipeline in self.layout.pipelines.values():
+        for pipeline in list(self.layout.pipelines.values()):
             pipeline.source.stop()
-            for action in self._reporter_actions.values():
+            for action in list(self._reporter_actions.values()):
                 for reporter in pipeline.__getattribute__(action):
                     reporter.stop()
 
@@ -364,7 +364,7 @@ class Scheduler(threading.Thread):
         }
 
         # TODO(jhesketh): Check the connection_name exists
-        if connection_name in self.connections.keys():
+        if connection_name in list(self.connections.keys()):
             driver_name = self.connections[connection_name].driver_name
             connection = self.connections[connection_name]
         else:
@@ -443,11 +443,11 @@ class Scheduler(threading.Thread):
             pipeline.ignore_dependencies = conf_pipeline.get(
                 'ignore-dependencies', False)
 
-            for conf_key, action in self._reporter_actions.items():
+            for conf_key, action in list(self._reporter_actions.items()):
                 reporter_set = []
                 if conf_pipeline.get(conf_key):
                     for reporter_name, params \
-                        in conf_pipeline.get(conf_key).items():
+                        in list(conf_pipeline.get(conf_key).items()):
                         reporter = self._getReporterDriver(reporter_name,
                                                            params)
                         reporter.setAction(conf_key)
@@ -489,12 +489,12 @@ class Scheduler(threading.Thread):
                 manager.changeish_filters.append(f)
 
             for trigger_name, trigger_config\
-                in conf_pipeline.get('trigger').items():
-                if trigger_name not in self.triggers.keys():
+                in list(conf_pipeline.get('trigger').items()):
+                if trigger_name not in list(self.triggers.keys()):
                     self.triggers[trigger_name] = \
                         self._getTriggerDriver(trigger_name, trigger_config)
 
-            for trigger_name, trigger in self.triggers.items():
+            for trigger_name, trigger in list(self.triggers.items()):
                 if trigger_name in conf_pipeline['trigger']:
                     manager.event_filters += trigger.getEventFilters(
                         conf_pipeline['trigger'][trigger_name])
@@ -503,7 +503,7 @@ class Scheduler(threading.Thread):
             # Make sure the template only contains valid pipelines
             tpl = dict(
                 (pipe_name, project_template.get(pipe_name))
-                for pipe_name in layout.pipelines.keys()
+                for pipe_name in list(layout.pipelines.keys())
                 if pipe_name in project_template
             )
             project_templates[project_template.get('name')] = tpl
@@ -572,7 +572,7 @@ class Scheduler(threading.Thread):
                     for x in job:
                         add_jobs(job_tree, x)
                 if isinstance(job, dict):
-                    for parent, children in job.items():
+                    for parent, children in list(job.items()):
                         parent_tree = job_tree.addJob(layout.getJob(parent))
                         add_jobs(parent_tree, children)
                 if isinstance(job, str):
@@ -597,7 +597,7 @@ class Scheduler(threading.Thread):
                 # already defined for this project.  Prepend our new
                 # jobs to existing ones (which may have been
                 # statically defined or defined by other templates).
-                for pipeline in layout.pipelines.values():
+                for pipeline in list(layout.pipelines.values()):
                     if pipeline.name in expanded:
                         config_project.update(
                             {pipeline.name: expanded[pipeline.name] +
@@ -606,7 +606,7 @@ class Scheduler(threading.Thread):
             layout.projects[config_project['name']] = project
             mode = config_project.get('merge-mode', 'merge-resolve')
             project.merge_mode = model.MERGER_MAP[mode]
-            for pipeline in layout.pipelines.values():
+            for pipeline in list(layout.pipelines.values()):
                 if pipeline.name in config_project:
                     job_tree = pipeline.addProject(project)
                     config_jobs = config_project[pipeline.name]
@@ -616,7 +616,7 @@ class Scheduler(threading.Thread):
         # metajobs so that getJob isn't doing anything weird.
         layout.metajobs = []
 
-        for pipeline in layout.pipelines.values():
+        for pipeline in list(layout.pipelines.values()):
             pipeline.manager._postConfig(layout)
 
         return layout
@@ -816,7 +816,7 @@ class Scheduler(threading.Thread):
             self._unloadDrivers()
             layout = self._parseConfig(
                 self.config.get('zuul', 'layout_config'), self.connections)
-            for name, new_pipeline in layout.pipelines.items():
+            for name, new_pipeline in list(layout.pipelines.items()):
                 old_pipeline = self.layout.pipelines.get(name)
                 if not old_pipeline:
                     if self.layout.pipelines:
@@ -872,16 +872,16 @@ class Scheduler(threading.Thread):
                         self.mutex.release(build.build_set.item, build.job)
             self.layout = layout
             self.maintainConnectionCache()
-            for trigger in self.triggers.values():
+            for trigger in list(self.triggers.values()):
                 trigger.postConfig()
-            for pipeline in self.layout.pipelines.values():
+            for pipeline in list(self.layout.pipelines.values()):
                 pipeline.source.postConfig()
-                for action in self._reporter_actions.values():
+                for action in list(self._reporter_actions.values()):
                     for reporter in pipeline.__getattribute__(action):
                         reporter.postConfig()
             if statsd:
                 try:
-                    for pipeline in self.layout.pipelines.values():
+                    for pipeline in list(self.layout.pipelines.values()):
                         items = len(pipeline.getAllItems())
                         # stats.gauges.zuul.pipeline.NAME.current_changes
                         key = 'zuul.pipeline.%s' % pipeline.name
@@ -946,7 +946,7 @@ class Scheduler(threading.Thread):
         waiting = False
         if self.merger.areMergesOutstanding():
             waiting = True
-        for pipeline in self.layout.pipelines.values():
+        for pipeline in list(self.layout.pipelines.values()):
             for item in pipeline.getAllItems():
                 for build in item.current_build_set.getBuilds():
                     if build.result is None:
@@ -990,7 +990,7 @@ class Scheduler(threading.Thread):
                 if self._pause and self._areAllBuildsComplete():
                     self._doPauseEvent()
 
-                for pipeline in self.layout.pipelines.values():
+                for pipeline in list(self.layout.pipelines.values()):
                     while pipeline.manager.processQueue():
                         pass
 
@@ -1003,12 +1003,12 @@ class Scheduler(threading.Thread):
 
     def maintainConnectionCache(self):
         relevant = set()
-        for pipeline in self.layout.pipelines.values():
+        for pipeline in list(self.layout.pipelines.values()):
             self.log.debug("Gather relevant cache items for: %s" % pipeline)
             for item in pipeline.getAllItems():
                 relevant.add(item.change)
                 relevant.update(item.change.getRelatedChanges())
-        for connection in self.connections.values():
+        for connection in list(self.connections.values()):
             connection.maintainCache(relevant)
             self.log.debug(
                 "End maintain connection cache for: %s" % connection)
@@ -1021,7 +1021,7 @@ class Scheduler(threading.Thread):
         try:
             project = self.layout.projects.get(event.project_name)
 
-            for pipeline in self.layout.pipelines.values():
+            for pipeline in list(self.layout.pipelines.values()):
                 # Get the change even if the project is unknown to us for the
                 # use of updating the cache if there is another change
                 # depending on this foreign one.
@@ -1161,7 +1161,7 @@ class Scheduler(threading.Thread):
 
         pipelines = []
         data['pipelines'] = pipelines
-        for pipeline in self.layout.pipelines.values():
+        for pipeline in list(self.layout.pipelines.values()):
             pipelines.append(pipeline.formatStatusJSON(url_pattern))
         return json.dumps(data)
 
@@ -1214,7 +1214,7 @@ class BasePipelineManager(object):
             for x in tree.job_trees:
                 log_jobs(x, indent + 2)
 
-        for p in layout.projects.values():
+        for p in list(layout.projects.values()):
             tree = self.pipeline.getJobTree(p)
             if tree:
                 self.log.info("    %s" % p)
@@ -1438,7 +1438,7 @@ class BasePipelineManager(object):
                     self.reportStart(item)
             self.enqueueChangesBehind(change, quiet, ignore_requirements,
                                       change_queue)
-            for trigger in self.sched.triggers.values():
+            for trigger in list(self.sched.triggers.values()):
                 trigger.onChangeEnqueued(item.change, self.pipeline)
             return True
 
@@ -1497,7 +1497,7 @@ class BasePipelineManager(object):
             dependent_items = self.getDependentItems(item)
             dependent_items.reverse()
             all_items = dependent_items + [item]
-            merger_items = map(self._makeMergerItem, all_items)
+            merger_items = list(map(self._makeMergerItem, all_items))
             self.sched.merger.mergeChanges(merger_items,
                                            item.current_build_set,
                                            self.pipeline.precedence)
@@ -1732,7 +1732,7 @@ class BasePipelineManager(object):
                 self.log.debug("%s window size increased to %s" %
                                (change_queue, change_queue.window))
 
-                for trigger in self.sched.triggers.values():
+                for trigger in list(self.sched.triggers.values()):
                     trigger.onChangeMerged(item.change, self.pipeline.source)
 
     def _reportItem(self, item):

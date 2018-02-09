@@ -14,3 +14,4 @@ config
 doc/build/*
 zuul/versioninfo
 dist/
+tmp/

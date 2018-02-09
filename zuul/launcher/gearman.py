@@ -133,7 +133,7 @@ class ZuulGearmanClient(gear.Client):
                 except Exception:
                     self.log.exception("Exception while checking functions")
                     continue
-                for line in req.response.split('\n'):
+                for line in req.response.split('\n'.encode()):
                     parts = [x.strip() for x in line.split()]
                     if not parts or parts[0] == '.':
                         continue
@@ -245,14 +245,14 @@ class Gearman(object):
         # swift upload url using parameter_function mechanism.
         if job.swift and self.swift.connection:
 
-            for name, s in job.swift.items():
+            for name, s in list(job.swift.items()):
                 swift_instructions = {}
                 s_config = {}
                 s_config.update((k, v.format(item=item, job=job,
                                              change=item.change))
                                 if isinstance(v, six.string_types)
                                 else (k, v)
-                                for k, v in s.items())
+                                for k, v in list(s.items()))
 
                 (swift_instructions['URL'],
                  swift_instructions['HMAC_BODY'],
@@ -270,7 +270,7 @@ class Gearman(object):
 
                 # Create a set of zuul instructions for each instruction-set
                 # given  in the form of NAME_PARAMETER=VALUE
-                for key, value in swift_instructions.items():
+                for key, value in list(swift_instructions.items()):
                     params['_'.join(['SWIFT', name, key])] = value
 
     def launch(self, job, item, pipeline, dependent_items=[]):
@@ -534,7 +534,7 @@ class Gearman(object):
 
     def lookForLostBuilds(self):
         self.log.debug("Looking for lost builds")
-        for build in self.builds.values():
+        for build in list(self.builds.values()):
             if build.result:
                 # The build has finished, it will be removed
                 continue

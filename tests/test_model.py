@@ -15,7 +15,7 @@
 import os
 import random
 
-import fixtures
+from . import fixtures
 
 from zuul import change_matcher as cm
 from zuul import model

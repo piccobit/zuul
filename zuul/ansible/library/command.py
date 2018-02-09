@@ -189,12 +189,12 @@ def zuul_run_command(self, args, check_rc=False, close_fds=True, executable=None
         if use_unsafe_shell:
             args = " ".join([pipes.quote(x) for x in args])
             shell = True
-    elif isinstance(args, (str, unicode)) and use_unsafe_shell:
+    elif isinstance(args, str) and use_unsafe_shell:
         shell = True
-    elif isinstance(args, (str, unicode)):
+    elif isinstance(args, str):
         # On python2.6 and below, shlex has problems with text type
         # ZUUL: Hardcode python2 until we're on ansible 2.2
-        if isinstance(args, unicode):
+        if isinstance(args, str):
             args = args.encode('utf-8')
         args = shlex.split(args)
     else:
@@ -219,11 +219,11 @@ def zuul_run_command(self, args, check_rc=False, close_fds=True, executable=None
     # Manipulate the environ we'll send to the new process
     old_env_vals = {}
     # We can set this from both an attribute and per call
-    for key, val in self.run_command_environ_update.items():
+    for key, val in list(self.run_command_environ_update.items()):
         old_env_vals[key] = os.environ.get(key, None)
         os.environ[key] = val
     if environ_update:
-        for key, val in environ_update.items():
+        for key, val in list(environ_update.items()):
             old_env_vals[key] = os.environ.get(key, None)
             os.environ[key] = val
     if path_prefix:
@@ -250,7 +250,7 @@ def zuul_run_command(self, args, check_rc=False, close_fds=True, executable=None
     # passwords from the args list
     to_clean_args = args
     # ZUUL: Hardcode python2 until we're on ansible 2.2
-    if isinstance(args, (unicode, str)):
+    if isinstance(args, str):
         to_clean_args = shlex.split(to_clean_args)
 
     clean_args = []
@@ -341,7 +341,7 @@ def zuul_run_command(self, args, check_rc=False, close_fds=True, executable=None
         self.fail_json(rc=257, msg=str(e), exception=traceback.format_exc(), cmd=clean_args)
 
     # Restore env settings
-    for key, val in old_env_vals.items():
+    for key, val in list(old_env_vals.items()):
         if val is None:
             del os.environ[key]
         else:

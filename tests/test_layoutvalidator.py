@@ -69,7 +69,7 @@ class TestLayoutValidator(testtools.TestCase):
                                     fn)
                 except voluptuous.Invalid as e:
                     error = str(e)
-                    print('  ', error)
+                    print(('  ', error))
                     if error in errors:
                         raise Exception("Error has already been tested: %s" %
                                         error)

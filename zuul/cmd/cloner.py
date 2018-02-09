@@ -94,7 +94,7 @@ class Cloner(zuul.cmd.ZuulApp):
 
         args = parser.parse_args(args)
         # Validate ZUUL_* arguments. If ref is provided then URL is required.
-        zuul_args = [zuul_opt for zuul_opt, val in vars(args).items()
+        zuul_args = [zuul_opt for zuul_opt, val in list(vars(args).items())
                      if zuul_opt.startswith('zuul') and val is not None]
         if 'zuul_ref' in zuul_args and 'zuul_url' not in zuul_args:
             parser.error("Specifying a Zuul ref requires a Zuul url. "

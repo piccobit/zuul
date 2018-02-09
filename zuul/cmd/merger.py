@@ -89,7 +89,7 @@ def main():
         f.close()
         os.unlink(test_fn)
     except Exception:
-        print("\nUnable to write to state directory: %s\n" % state_dir)
+        print(("\nUnable to write to state directory: %s\n" % state_dir))
         raise
 
     if server.config.has_option('merger', 'pidfile'):

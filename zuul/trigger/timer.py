@@ -31,7 +31,7 @@ class TimerTrigger(BaseTrigger):
         self.apsched.start()
 
     def _onTrigger(self, pipeline_name, timespec):
-        for project in self.sched.layout.projects.values():
+        for project in list(self.sched.layout.projects.values()):
             event = TriggerEvent()
             event.type = 'timer'
             event.timespec = timespec
@@ -64,7 +64,7 @@ class TimerTrigger(BaseTrigger):
     def postConfig(self):
         for job in self.apsched.get_jobs():
             job.remove()
-        for pipeline in self.sched.layout.pipelines.values():
+        for pipeline in list(self.sched.layout.pipelines.values()):
             for ef in pipeline.manager.event_filters:
                 if ef.trigger != self:
                     continue

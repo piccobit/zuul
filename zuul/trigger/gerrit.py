@@ -34,7 +34,7 @@ class GerritTrigger(BaseTrigger):
         for trigger in toList(trigger_conf):
             approvals = {}
             for approval_dict in toList(trigger.get('approval')):
-                for key, val in approval_dict.items():
+                for key, val in list(approval_dict.items()):
                     approvals[key] = val
             # Backwards compat for *_filter versions of these args
             comments = toList(trigger.get('comment'))

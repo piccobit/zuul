@@ -263,7 +263,7 @@ class GerritConnection(BaseConnection):
         # still in use.  Anything in our cache that isn't in the supplied
         # list should be safe to remove from the cache.
         remove = []
-        for key, change in self._change_cache.items():
+        for key, change in list(self._change_cache.items()):
             if change not in relevant:
                 remove.append(key)
         for key in remove:
@@ -282,7 +282,7 @@ class GerritConnection(BaseConnection):
         cmd = 'gerrit review --project %s' % project
         if message:
             cmd += ' --message "%s"' % message
-        for key, val in action.items():
+        for key, val in list(action.items()):
             if val is True:
                 cmd += ' --%s' % key
             else:
@@ -300,7 +300,7 @@ class GerritConnection(BaseConnection):
         out, err = self._ssh(cmd)
         if not out:
             return False
-        lines = out.split('\n')
+        lines = out.split('\n'.encode())
         if not lines:
             return False
         data = json.loads(lines[0])
@@ -319,7 +319,7 @@ class GerritConnection(BaseConnection):
             out, err = self._ssh(cmd)
             if not out:
                 return False
-            lines = out.split('\n')
+            lines = out.split('\n'.encode())
             if not lines:
                 return False
 

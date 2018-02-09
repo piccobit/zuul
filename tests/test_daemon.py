@@ -20,7 +20,7 @@ import os
 import sys
 
 import extras
-import fixtures
+from . import fixtures
 import testtools
 
 from tests.base import iterate_timeout

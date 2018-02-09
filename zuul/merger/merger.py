@@ -209,7 +209,7 @@ class Merger(object):
         self.username = username
 
     def _makeSSHWrappers(self, working_root, connections):
-        for connection_name, connection in connections.items():
+        for connection_name, connection in list(connections.items()):
             sshkey = connection.connection_config.get('sshkey')
             if sshkey:
                 self._makeSSHWrapper(sshkey, working_root, connection_name)
@@ -328,7 +328,7 @@ class Merger(object):
         recent[key] = commit
         # Set the Zuul ref for this item to point to the most recent
         # commits of each project-branch
-        for key, mrc in recent.items():
+        for key, mrc in list(recent.items()):
             project, branch = key
             try:
                 repo = self.getRepo(project, None)

@@ -39,7 +39,7 @@ import uuid
 
 import git
 import gear
-import fixtures
+from . import fixtures
 import pymysql
 import statsd
 import testtools
@@ -339,7 +339,7 @@ class FakeChange(object):
 
     def getSubmitRecords(self):
         status = {}
-        for cat in self.categories.keys():
+        for cat in list(self.categories.keys()):
             status[cat] = 0
 
         for a in self.patchsets[-1]['approvals']:
@@ -354,7 +354,7 @@ class FakeChange(object):
 
         labels = []
         ok = True
-        for typ, cat in self.categories.items():
+        for typ, cat in list(self.categories.items()):
             cur = status[typ]
             cat_min, cat_max = cat[1:]
             if cur == cat_min:
@@ -482,16 +482,16 @@ class FakeGerritConnection(zuul.connection.gerrit.GerritConnection):
         if query.startswith('change:'):
             # Query a specific changeid
             changeid = query[len('change:'):]
-            l = [change.query() for change in self.changes.values()
+            l = [change.query() for change in list(self.changes.values())
                  if change.data['id'] == changeid]
         elif query.startswith('message:'):
             # Query the content of a commit message
             msg = query[len('message:'):].strip()
-            l = [change.query() for change in self.changes.values()
+            l = [change.query() for change in list(self.changes.values())
                  if msg in change.data['commitMessage']]
         else:
             # Query all open changes
-            l = [change.query() for change in self.changes.values()]
+            l = [change.query() for change in list(self.changes.values())]
         return l
 
     def _start_watcher_thread(self, *args, **kw):
@@ -1127,9 +1127,9 @@ class ZuulTestCase(BaseTestCase):
 
             # TODO(jhesketh): load the required class automatically
             if con_driver == 'gerrit':
-                if con_config['server'] not in self.gerrit_changes_dbs.keys():
+                if con_config['server'] not in list(self.gerrit_changes_dbs.keys()):
                     self.gerrit_changes_dbs[con_config['server']] = {}
-                if con_config['server'] not in self.gerrit_queues_dbs.keys():
+                if con_config['server'] not in list(self.gerrit_queues_dbs.keys()):
                     self.gerrit_queues_dbs[con_config['server']] = \
                         Queue.Queue()
                     self.event_queues.append(
@@ -1182,7 +1182,7 @@ class ZuulTestCase(BaseTestCase):
                 repos.append(obj)
         self.assertEqual(len(repos), 0)
         self.assertEmptyQueues()
-        for pipeline in self.sched.layout.pipelines.values():
+        for pipeline in list(self.sched.layout.pipelines.values()):
             if isinstance(pipeline.manager,
                           zuul.scheduler.IndependentPipelineManager):
                 self.assertEqual(len(pipeline.queues), 0)
@@ -1303,7 +1303,7 @@ class ZuulTestCase(BaseTestCase):
 
     def registerJobs(self):
         count = 0
-        for job in self.sched.layout.jobs.keys():
+        for job in list(self.sched.layout.jobs.keys()):
             self.worker.registerFunction('build:' + job)
             count += 1
         self.worker.registerFunction('stop:' + self.worker.worker_id)
@@ -1370,11 +1370,11 @@ class ZuulTestCase(BaseTestCase):
         return True
 
     def areAllBuildsWaiting(self):
-        builds = self.launcher.builds.values()
+        builds = list(self.launcher.builds.values())
         for build in builds:
             client_job = None
             for conn in self.launcher.gearman.active_connections:
-                for j in conn.related_jobs.values():
+                for j in list(conn.related_jobs.values()):
                     if j.unique == build.uuid:
                         client_job = j
                         break
@@ -1450,7 +1450,7 @@ class ZuulTestCase(BaseTestCase):
             self.sched.wake_event.wait(0.1)
 
     def countJobResults(self, jobs, result):
-        jobs = filter(lambda x: x.result == result, jobs)
+        jobs = [x for x in jobs if x.result == result]
         return len(jobs)
 
     def getJobFromHistory(self, name):
@@ -1462,11 +1462,11 @@ class ZuulTestCase(BaseTestCase):
 
     def assertEmptyQueues(self):
         # Make sure there are no orphaned jobs
-        for pipeline in self.sched.layout.pipelines.values():
+        for pipeline in list(self.sched.layout.pipelines.values()):
             for queue in pipeline.queues:
                 if len(queue.queue) != 0:
-                    print('pipeline %s queue %s contents %s' % (
-                        pipeline.name, queue.name, queue.queue))
+                    print(('pipeline %s queue %s contents %s' % (
+                        pipeline.name, queue.name, queue.queue)))
                 self.assertEqual(len(queue.queue), 0,
                                  "Pipelines queues should be empty")
 

@@ -25,7 +25,7 @@ import threading
 import time
 import traceback
 import uuid
-import Queue
+import queue
 
 import gear
 import yaml
@@ -155,8 +155,8 @@ class LaunchServer(object):
         self.node_workers = {}
         self.jobs = {}
         self.builds = {}
-        self.zmq_send_queue = Queue.Queue()
-        self.termination_queue = Queue.Queue()
+        self.zmq_send_queue = queue.Queue()
+        self.termination_queue = queue.Queue()
         self.sites = {}
         self.static_nodes = {}
         self.command_map = dict(
@@ -294,7 +294,7 @@ class LaunchServer(object):
         self.gearman_thread.start()
 
         # Start static workers
-        for node in self.static_nodes.values():
+        for node in list(self.static_nodes.values()):
             self.log.debug("Creating static node with arguments: %s" % (node,))
             self._launchWorker(node)
 
@@ -329,7 +329,7 @@ class LaunchServer(object):
     def reconfigure(self):
         self.log.debug("Reconfiguring")
         self.loadJobs()
-        for node in self.node_workers.values():
+        for node in list(self.node_workers.values()):
             try:
                 if node.isAlive():
                     node.queue.put(dict(action='reconfigure'))
@@ -342,7 +342,7 @@ class LaunchServer(object):
         self.log.debug("Pausing")
         self.accept_nodes = False
         self.register()
-        for node in self.node_workers.values():
+        for node in list(self.node_workers.values()):
             try:
                 if node.isAlive():
                     node.queue.put(dict(action='pause'))
@@ -355,7 +355,7 @@ class LaunchServer(object):
         self.log.debug("Unpausing")
         self.accept_nodes = self.config_accept_nodes
         self.register()
-        for node in self.node_workers.values():
+        for node in list(self.node_workers.values()):
             try:
                 if node.isAlive():
                     node.queue.put(dict(action='unpause'))
@@ -366,7 +366,7 @@ class LaunchServer(object):
 
     def release(self):
         self.log.debug("Releasing idle nodes")
-        for node in self.node_workers.values():
+        for node in list(self.node_workers.values()):
             if node.name in self.static_nodes:
                 continue
             try:
@@ -396,7 +396,7 @@ class LaunchServer(object):
         self._reaper_running = False
         self.worker.shutdown()
         # Then stop all of the workers
-        for node in self.node_workers.values():
+        for node in list(self.node_workers.values()):
             try:
                 if node.isAlive():
                     node.stop()
@@ -592,7 +592,7 @@ class NodeWorker(object):
         self.unpaused = threading.Event()
         self.unpaused.set()
         self._running = True
-        self.queue = Queue.Queue()
+        self.queue = queue.Queue()
         self.manager_name = manager_name
         self.zmq_send_queue = zmq_send_queue
         self.termination_queue = termination_queue
@@ -774,7 +774,7 @@ class NodeWorker(object):
             self.log.debug("Updating registration")
             self.pending_registration = False
             new_functions = set()
-            for job in self.jobs.values():
+            for job in list(self.jobs.values()):
                 new_functions |= self.generateFunctionNames(job)
             self.worker.sendMassDo(new_functions)
             self.registered_functions = new_functions
@@ -1250,7 +1250,7 @@ class NodeWorker(object):
         with open(jobdir.inventory, 'w') as inventory:
             for host_name, host_vars in self.getHostList():
                 inventory.write(host_name)
-                for k, v in host_vars.items():
+                for k, v in list(host_vars.items()):
                     inventory.write(' %s=%s' % (k, v))
                 inventory.write('\n')
 
@@ -1550,7 +1550,7 @@ class JJB(jenkins_jobs.builder.Builder):
         component_list_type = component_type + 's'
         new_components = []
         if isinstance(component, dict):
-            name, component_data = next(iter(component.items()))
+            name, component_data = next(iter(list(component.items())))
             if template_data:
                 component_data = jenkins_jobs.formatter.deep_format(
                     component_data, template_data, True)

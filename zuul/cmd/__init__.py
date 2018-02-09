@@ -37,7 +37,7 @@ import zuul.lib.connections
 def stack_dump_handler(signum, frame):
     signal.signal(signal.SIGUSR2, signal.SIG_IGN)
     log_str = ""
-    for thread_id, stack_frame in sys._current_frames().items():
+    for thread_id, stack_frame in list(sys._current_frames().items()):
         log_str += "Thread: %s\n" % thread_id
         log_str += "".join(traceback.format_stack(stack_frame))
     log = logging.getLogger("zuul.stack_dump")

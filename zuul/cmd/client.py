@@ -92,7 +92,7 @@ class Client(zuul.cmd.ZuulApp):
         show_running_jobs.add_argument(
             '--columns',
             help="comma separated list of columns to display (or 'ALL')",
-            choices=self._show_running_jobs_columns().keys().append('ALL'),
+            choices=list(self._show_running_jobs_columns().keys()).append('ALL'),
             default='name, worker.name, start_time, result'
         )
 
@@ -159,10 +159,10 @@ class Client(zuul.cmd.ZuulApp):
 
         all_fields = self._show_running_jobs_columns()
         if self.args.columns.upper() == 'ALL':
-            fields = all_fields.keys()
+            fields = list(all_fields.keys())
         else:
             fields = [f.strip().lower() for f in self.args.columns.split(',')
-                      if f.strip().lower() in all_fields.keys()]
+                      if f.strip().lower() in list(all_fields.keys())]
 
         table = prettytable.PrettyTable(
             field_names=[all_fields[f]['title'] for f in fields])

@@ -14,7 +14,7 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import urllib2
+import urllib.request, urllib.error, urllib.parse
 import json
 import argparse
 
@@ -23,7 +23,7 @@ parser.add_argument('url', help='The URL of the running Zuul instance')
 parser.add_argument('pipeline_name', help='The name of the Zuul pipeline')
 options = parser.parse_args()
 
-data = urllib2.urlopen('%s/status.json' % options.url).read()
+data = urllib.request.urlopen('%s/status.json' % options.url).read()
 data = json.loads(data)
 
 for pipeline in data['pipelines']:
@@ -35,10 +35,10 @@ for pipeline in data['pipelines']:
                 if not change['live']:
                     continue
                 cid, cps = change['id'].split(',')
-                print(
+                print((
                     "zuul enqueue --trigger gerrit --pipeline %s "
                     "--project %s --change %s,%s" % (
                         options.pipeline_name,
                         change['project'],
                         cid, cps)
-                )
+                ))

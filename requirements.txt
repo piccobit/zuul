@@ -3,12 +3,12 @@ pbr>=1.1.0
 PyYAML>=3.1.0
 Paste
 WebOb>=1.2.3
-paramiko>=1.8.0,<2.0.0
-GitPython>=0.3.3,<2.1.2
+paramiko>=2.0.0
+GitPython>=2.1.2
 ordereddict
-python-daemon>=2.0.4,<2.1.0
+python-daemon>=2.1.0
 extras
-statsd>=1.0.0,<3.0
+statsd>=3.0
 voluptuous>=0.10.2
 gear>=0.5.7,<1.0.0
 apscheduler>=3.0
@@ -17,3 +17,4 @@ babel>=1.0
 six>=1.6.0
 sqlalchemy
 alembic
+aiohttp>=3.0.0b3
