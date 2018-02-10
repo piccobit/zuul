@@ -300,7 +300,7 @@ class GerritConnection(BaseConnection):
         out, err = self._ssh(cmd)
         if not out:
             return False
-        lines = out.split('\n'.encode())
+        lines = out.split(b'\n')
         if not lines:
             return False
         data = json.loads(lines[0])
@@ -319,7 +319,7 @@ class GerritConnection(BaseConnection):
             out, err = self._ssh(cmd)
             if not out:
                 return False
-            lines = out.split('\n'.encode())
+            lines = out.split(b'\n')
             if not lines:
                 return False
 
