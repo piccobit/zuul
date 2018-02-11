@@ -23,12 +23,11 @@ import extras
 OrderedDict = extras.try_imports(['collections.OrderedDict',
                                   'ordereddict.OrderedDict'])
 
-
 EMPTY_GIT_REF = '0' * 40  # git sha of all zeros, used during creates/deletes
 
-MERGER_MERGE = 1          # "git merge"
+MERGER_MERGE = 1  # "git merge"
 MERGER_MERGE_RESOLVE = 2  # "git merge -s resolve"
-MERGER_CHERRY_PICK = 3    # "git cherry-pick"
+MERGER_CHERRY_PICK = 3  # "git cherry-pick"
 
 MERGER_MAP = {
     'merge': MERGER_MERGE,
@@ -59,7 +58,7 @@ def time_to_seconds(s):
         return int(s[:-1]) * 24 * 60 * 60
     if s.endswith('w'):
         return int(s[:-1]) * 7 * 24 * 60 * 60
-    raise Exception("Unable to parse time value: %s" % s)
+    raise Exception("Unable to parse time value: {}".format(s))
 
 
 def normalizeCategory(name):
@@ -69,6 +68,7 @@ def normalizeCategory(name):
 
 class Pipeline(object):
     """A top-level pipeline such as check, gate, post, etc."""
+
     def __init__(self, name):
         self.name = name
         self.description = None
@@ -99,7 +99,7 @@ class Pipeline(object):
         self.window_decrease_factor = None
 
     def __repr__(self):
-        return '<Pipeline %s>' % self.name
+        return '<Pipeline {}>'.format(self.name)
 
     def setManager(self, manager):
         self.manager = manager
@@ -202,7 +202,8 @@ class Pipeline(object):
                 return False
         return True
 
-    def didMergerSucceed(self, item):
+    @staticmethod
+    def didMergerSucceed(item):
         if item.current_build_set.unable_to_merge:
             return False
         return True
@@ -307,6 +308,7 @@ class ChangeQueue(object):
     a queue shared by interrelated projects foo and bar, and a second
     queue for independent project baz.  Pipelines have one or more
     ChangeQueues."""
+
     def __init__(self, pipeline, window=0, window_floor=1,
                  window_increase_type='linear', window_increase_factor=1,
                  window_decrease_type='exponential', window_decrease_factor=2):
@@ -325,7 +327,7 @@ class ChangeQueue(object):
         self.window_decrease_factor = window_decrease_factor
 
     def __repr__(self):
-        return '<ChangeQueue %s: %s>' % (self.pipeline.name, self.name)
+        return '<ChangeQueue {}: {}>'.format(self.pipeline.name, self.name)
 
     def getJobs(self):
         return self._jobs
@@ -344,8 +346,8 @@ class ChangeQueue(object):
                     if (self.assigned_name and
                             job.queue_name != self.assigned_name):
                         raise Exception("More than one name assigned to "
-                                        "change queue: %s != %s" %
-                                        (self.assigned_name, job.queue_name))
+                                        "change queue: {} != {}"
+                                        .format(self.assigned_name, job.queue_name))
                     self.assigned_name = job.queue_name
             self.name = self.assigned_name or self.generated_name
 
@@ -376,7 +378,8 @@ class ChangeQueue(object):
         item.items_behind = []
         item.dequeue_time = time.time()
 
-    def moveItem(self, item, item_ahead):
+    @staticmethod
+    def moveItem(item, item_ahead):
         if item.item_ahead == item_ahead:
             return False
         # Remove from current location
@@ -437,7 +440,7 @@ class Project(object):
         return self.name
 
     def __repr__(self):
-        return '<Project %s>' % (self.name)
+        return '<Project {}>'.format(self.name)
 
 
 class Job(object):
@@ -473,7 +476,7 @@ class Job(object):
         return self.name
 
     def __repr__(self):
-        return '<Job %s>' % (self.name)
+        return '<Job {}>'.format(self.name)
 
     @property
     def is_metajob(self):
@@ -492,10 +495,12 @@ class Job(object):
             self.parameter_function = other.parameter_function
         if other.branches:
             self.branches = other.branches[:]
-            self._branches = other._branches[:]
+            # TODO(hds): Check if this really necessary
+            # self._branches = other._branches[:]
         if other.files:
             self.files = other.files[:]
-            self._files = other._files[:]
+            # TODO(hds): Check if this really necessary
+            # self._files = other._files[:]
         if other.skip_if_matcher:
             self.skip_if_matcher = other.skip_if_matcher.copy()
         if other.swift:
@@ -594,12 +599,13 @@ class Build(object):
         self.node_name = None
 
     def __repr__(self):
-        return ('<Build %s of %s on %s>' %
-                (self.uuid, self.job.name, self.worker))
+        return ('<Build {} of {} on {}>'
+                .format(self.uuid, self.job.name, self.worker))
 
 
 class Worker(object):
     """A model of the worker running a job"""
+
     def __init__(self):
         self.name = "Unknown"
         self.hostname = None
@@ -620,7 +626,7 @@ class Worker(object):
         self.extra = data.get('worker_extra', self.extra)
 
     def __repr__(self):
-        return '<Worker %s>' % self.name
+        return '<Worker {}>'.format(self.name)
 
 
 class BuildSet(object):
@@ -651,10 +657,9 @@ class BuildSet(object):
         self.tries = {}
 
     def __repr__(self):
-        return '<BuildSet item: %s #builds: %s merge state: %s>' % (
-            self.item,
-            len(self.builds),
-            self.getStateName(self.merge_state))
+        return '<BuildSet item: {} #builds: {} merge state: {}>'.format(self.item,
+                                                                        len(self.builds),
+                                                                        self.getStateName(self.merge_state))
 
     def setConfiguration(self):
         # The change isn't enqueued until after it's created
@@ -670,7 +675,7 @@ class BuildSet(object):
 
     def getStateName(self, state_num):
         return self.states_map.get(
-            state_num, 'UNKNOWN (%s)' % state_num)
+            state_num, 'UNKNOWN ({})'.format(state_num))
 
     def addBuild(self, build):
         self.builds[build.job.name] = build
@@ -718,8 +723,7 @@ class QueueItem(object):
             pipeline = self.pipeline.name
         else:
             pipeline = None
-        return '<QueueItem 0x%x for %s in %s>' % (
-            id(self), self.change, pipeline)
+        return '<QueueItem 0x{:x} for {} in {}>'.format(id(self), self.change, pipeline)
 
     def resetAllBuilds(self):
         old = self.current_build_set
@@ -755,6 +759,7 @@ class QueueItem(object):
                 pattern = job.failure_pattern
         url = None
         if pattern:
+            # noinspection PyBroadException
             try:
                 url = pattern.format(change=self.change,
                                      pipeline=self.pipeline,
@@ -764,23 +769,21 @@ class QueueItem(object):
                 pass  # FIXME: log this or something?
         if not url:
             url = build.url or job.name
-        return (result, url)
+        return result, url
 
     def formatJSON(self, url_pattern=None):
         changeish = self.change
-        ret = {}
-        ret['active'] = self.active
-        ret['live'] = self.live
+        ret = {'active': self.active, 'live': self.live}
         if hasattr(changeish, 'url') and changeish.url is not None:
             ret['url'] = changeish.url
         else:
             ret['url'] = None
-        ret['id'] = changeish._id()
+        ret['id'] = changeish._id
         if self.item_ahead:
-            ret['item_ahead'] = self.item_ahead.change._id()
+            ret['item_ahead'] = self.item_ahead.change._id
         else:
             ret['item_ahead'] = None
-        ret['items_behind'] = [i.change._id() for i in self.items_behind]
+        ret['items_behind'] = [i.change._id for i in self.items_behind]
         ret['failing_reasons'] = self.current_build_set.failing_reasons
         ret['zuul_ref'] = self.current_build_set.ref
         if changeish.project:
@@ -833,6 +836,7 @@ class QueueItem(object):
             if remaining and remaining > max_remaining:
                 max_remaining = remaining
 
+            # noinspection PyUnresolvedReferences
             ret['jobs'].append({
                 'name': job.name,
                 'elapsed_time': elapsed,
@@ -866,17 +870,15 @@ class QueueItem(object):
         indent_str = ' ' * indent
         ret = ''
         if html and hasattr(changeish, 'url') and changeish.url is not None:
-            ret += '%sProject %s change <a href="%s">%s</a>\n' % (
-                indent_str,
-                changeish.project.name,
-                changeish.url,
-                changeish._id())
+            ret += '{}Project {} change <a href="{}">{}</a>\n'.format(indent_str,
+                                                                      changeish.project.name,
+                                                                      changeish.url,
+                                                                      changeish._id)
         else:
-            ret += '%sProject %s change %s based on %s\n' % (
-                indent_str,
-                changeish.project.name,
-                changeish._id(),
-                self.item_ahead)
+            ret += '{}Project {} change {} based on {}\n'.format(indent_str,
+                                                                 changeish.project.name,
+                                                                 changeish._id,
+                                                                 self.item_ahead)
         for job in self.pipeline.getJobs(self):
             build = self.current_build_set.getBuild(job.name)
             if build:
@@ -894,8 +896,8 @@ class QueueItem(object):
                 else:
                     url = None
                 if url is not None:
-                    job_name = '<a href="%s">%s</a>' % (url, job_name)
-            ret += '%s  %s: %s%s' % (indent_str, job_name, result, voting)
+                    job_name = '<a href="{}">{}</a>'.format(url, job_name)
+            ret += '{}  {}: {}{}'.format(indent_str, job_name, result, voting)
             ret += '\n'
         return ret
 
@@ -904,15 +906,17 @@ class Changeish(object):
     """Something like a change; either a change or a ref"""
 
     def __init__(self, project):
+        self.newrev = None
+        self.number = None
+        self.patchset = None
         self.project = project
 
     def getBasePath(self):
         base_path = ''
-        if hasattr(self, 'refspec'):
-            base_path = "%s/%s/%s" % (
-                self.number[-2:], self.number, self.patchset)
-        elif hasattr(self, 'ref'):
-            base_path = "%s/%s" % (self.newrev[:2], self.newrev)
+        if hasattr(self, "refspec"):
+            base_path = "{}/{}/{}".format(self.number[-2:], self.number, self.patchset)
+        elif hasattr(self, "ref"):
+            base_path = "{}/{}".format(self.newrev[:2], self.newrev)
 
         return base_path
 
@@ -951,10 +955,10 @@ class Change(Changeish):
         self.owner = None
 
     def _id(self):
-        return '%s,%s' % (self.number, self.patchset)
+        return "{},{}".format(self.number, self.patchset)
 
     def __repr__(self):
-        return '<Change 0x%x %s>' % (id(self), self._id())
+        return '<Change 0x{:x} {}>'.format(id(self), self._id)
 
     def equals(self, other):
         if self.number == other.number and self.patchset == other.patchset:
@@ -963,10 +967,10 @@ class Change(Changeish):
 
     def isUpdateOf(self, other):
         if ((hasattr(other, 'number') and self.number == other.number) and
-            (hasattr(other, 'patchset') and
-             self.patchset is not None and
-             other.patchset is not None and
-             int(self.patchset) > int(other.patchset))):
+                (hasattr(other, 'patchset') and
+                 self.patchset is not None and
+                 other.patchset is not None and
+                 int(self.patchset) > int(other.patchset))):
             return True
         return False
 
@@ -991,24 +995,19 @@ class Ref(Changeish):
         return self.newrev
 
     def __repr__(self):
-        rep = None
         if self.newrev == '0000000000000000000000000000000000000000':
-            rep = '<Ref 0x%x deletes %s from %s' % (
-                  id(self), self.ref, self.oldrev)
+            rep = '<Ref 0x{:x} deletes {} from {}'.format(id(self), self.ref, self.oldrev)
         elif self.oldrev == '0000000000000000000000000000000000000000':
-            rep = '<Ref 0x%x creates %s on %s>' % (
-                  id(self), self.ref, self.newrev)
+            rep = '<Ref 0x{:x} creates {} on {}>'.format(id(self), self.ref, self.newrev)
         else:
             # Catch all
-            rep = '<Ref 0x%x %s updated %s..%s>' % (
-                  id(self), self.ref, self.oldrev, self.newrev)
+            rep = '<Ref 0x{:x} {} updated {}..{}>'.format(id(self), self.ref, self.oldrev, self.newrev)
 
         return rep
 
     def equals(self, other):
-        if (self.project == other.project
-            and self.ref == other.ref
-            and self.newrev == other.newrev):
+        if (not (not (self.project == other.project) or not (self.ref == other.ref))
+                and self.newrev == other.newrev):
             return True
         return False
 
@@ -1018,14 +1017,14 @@ class Ref(Changeish):
 
 class NullChange(Changeish):
     def __repr__(self):
-        return '<NullChange for %s>' % (self.project)
+        return '<NullChange for {}>'.format(self.project)
 
-    def _id(self):
+    @staticmethod
+    def _id():
         return None
 
     def equals(self, other):
-        if (self.project == other.project
-            and other._id() is None):
+        if (self.project == other.project) and (other._id is None):
             return True
         return False
 
@@ -1063,28 +1062,33 @@ class TriggerEvent(object):
         self.forced_pipeline = None
 
     def __repr__(self):
-        ret = '<TriggerEvent %s %s' % (self.type, self.project_name)
+        ret = '<TriggerEvent {} {}'.format(self.type, self.project_name)
 
         if self.branch:
-            ret += " %s" % self.branch
+            ret += " {}".format(self.branch)
         if self.change_number:
-            ret += " %s,%s" % (self.change_number, self.patch_number)
+            ret += " {},{}".format(self.change_number, self.patch_number)
         if self.approvals:
             ret += ' ' + ', '.join(
-                ['%s:%s' % (a['type'], a['value']) for a in self.approvals])
+                ['{}:{}'.format(a['type'], a['value']) for a in self.approvals])
         ret += '>'
 
         return ret
 
 
 class BaseFilter(object):
-    def __init__(self, required_approvals=[], reject_approvals=[]):
+    def __init__(self, required_approvals=None, reject_approvals=None):
+        if reject_approvals is None:
+            reject_approvals = []
+        if required_approvals is None:
+            required_approvals = []
         self._required_approvals = copy.deepcopy(required_approvals)
         self.required_approvals = self._tidy_approvals(required_approvals)
         self._reject_approvals = copy.deepcopy(reject_approvals)
         self.reject_approvals = self._tidy_approvals(reject_approvals)
 
-    def _tidy_approvals(self, approvals):
+    @staticmethod
+    def _tidy_approvals(approvals):
         for a in approvals:
             for k, v in list(a.items()):
                 if k == 'username':
@@ -1099,7 +1103,8 @@ class BaseFilter(object):
                 del a['email-filter']
         return approvals
 
-    def _match_approval_required_approval(self, rapproval, approval):
+    @staticmethod
+    def _match_approval_required_approval(rapproval, approval):
         # Check if the required approval and approval match
         if 'description' not in approval:
             return False
@@ -1107,23 +1112,23 @@ class BaseFilter(object):
         by = approval.get('by', {})
         for k, v in list(rapproval.items()):
             if k == 'username':
-                if (not v.search(by.get('username', ''))):
-                        return False
+                if not v.search(by.get('username', '')):
+                    return False
             elif k == 'email':
-                if (not v.search(by.get('email', ''))):
-                        return False
+                if not v.search(by.get('email', '')):
+                    return False
             elif k == 'newer-than':
                 t = now - v
-                if (approval['grantedOn'] < t):
-                        return False
+                if approval['grantedOn'] < t:
+                    return False
             elif k == 'older-than':
                 t = now - v
-                if (approval['grantedOn'] >= t):
+                if approval['grantedOn'] >= t:
                     return False
             else:
                 if not isinstance(v, list):
                     v = [v]
-                if (normalizeCategory(approval['description']) !=
+                if (normalizeCategory(approval["description"]) !=
                         normalizeCategory(k) or
                         int(approval['value']) not in v):
                     return False
@@ -1170,10 +1175,32 @@ class BaseFilter(object):
 
 
 class EventFilter(BaseFilter):
-    def __init__(self, trigger, types=[], branches=[], refs=[],
-                 event_approvals={}, comments=[], emails=[], usernames=[],
-                 timespecs=[], required_approvals=[], reject_approvals=[],
-                 pipelines=[], ignore_deletes=True):
+    def __init__(self, trigger, types=None, branches=None, refs=None,
+                 event_approvals=None, comments=None, emails=None, usernames=None,
+                 timespecs=None, required_approvals=None, reject_approvals=None,
+                 pipelines=None, ignore_deletes=True):
+        if pipelines is None:
+            pipelines = []
+        if reject_approvals is None:
+            reject_approvals = []
+        if required_approvals is None:
+            required_approvals = []
+        if usernames is None:
+            usernames = []
+        if emails is None:
+            emails = []
+        if comments is None:
+            comments = []
+        if event_approvals is None:
+            event_approvals = {}
+        if timespecs is None:
+            timespecs = []
+        if refs is None:
+            refs = []
+        if branches is None:
+            branches = []
+        if types is None:
+            types = []
         super(EventFilter, self).__init__(
             required_approvals=required_approvals,
             reject_approvals=reject_approvals)
@@ -1272,7 +1299,7 @@ class EventFilter(BaseFilter):
         matches_comment_re = False
         for comment_re in self.comments:
             if (event.comment is not None and
-                comment_re.search(event.comment)):
+                    comment_re.search(event.comment)):
                 matches_comment_re = True
         if self.comments and not matches_comment_re:
             return False
@@ -1295,7 +1322,7 @@ class EventFilter(BaseFilter):
             matches_username_re = False
             for username_re in self.usernames:
                 if (account_username is not None and
-                    username_re.search(account_username)):
+                        username_re.search(account_username)):
                     matches_username_re = True
             if self.usernames and not matches_username_re:
                 return False
@@ -1318,7 +1345,7 @@ class EventFilter(BaseFilter):
         # timespecs are ORed
         matches_timespec = False
         for timespec in self.timespecs:
-            if (event.timespec == timespec):
+            if event.timespec == timespec:
                 matches_timespec = True
         if self.timespecs and not matches_timespec:
             return False
@@ -1327,13 +1354,19 @@ class EventFilter(BaseFilter):
 
 
 class ChangeishFilter(BaseFilter):
-    def __init__(self, open=None, current_patchset=None,
-                 statuses=[], required_approvals=[],
-                 reject_approvals=[]):
+    def __init__(self, open_change=None, current_patchset=None,
+                 statuses=None, required_approvals=None,
+                 reject_approvals=None):
+        if statuses is None:
+            statuses = []
+        if reject_approvals is None:
+            reject_approvals = []
+        if required_approvals is None:
+            required_approvals = []
         super(ChangeishFilter, self).__init__(
             required_approvals=required_approvals,
             reject_approvals=reject_approvals)
-        self.open = open
+        self.open = open_change
         self.current_patchset = current_patchset
         self.statuses = statuses
 
@@ -1405,14 +1438,14 @@ class JobTimeData(object):
 
     def __init__(self, path):
         self.path = path
-        self.success_times = [0 for x in range(10)]
-        self.failure_times = [0 for x in range(10)]
-        self.results = [0 for x in range(10)]
+        self.success_times = [0 for _ in range(10)]
+        self.failure_times = [0 for _ in range(10)]
+        self.results = [0 for _ in range(10)]
 
     def load(self):
         if not os.path.exists(self.path):
             return
-        with open(self.path) as f:
+        with open(self.path, "rb") as f:
             data = struct.unpack(self.format, f.read())
         version = data[0]
         if version != self.version:
@@ -1428,7 +1461,7 @@ class JobTimeData(object):
         data.extend(self.failure_times)
         data.extend(self.results)
         data = struct.pack(self.format, *data)
-        with open(tmpfile, 'w') as f:
+        with open(tmpfile, "wb") as f:
             f.write(data)
         os.rename(tmpfile, self.path)
 

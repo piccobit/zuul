@@ -220,7 +220,7 @@ class GerritSource(BaseSource):
         results = self.connection.simpleQuery(query)
         for result in results:
             for match in self.depends_on_re.findall(
-                result['commitMessage']):
+                    result['commitMessage']):
                 if match != change_id:
                     continue
                 key = (result['number'], result['currentPatchSet']['number'])
