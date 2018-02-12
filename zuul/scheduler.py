@@ -1775,14 +1775,14 @@ class BasePipelineManager(object):
             actions = self.pipeline.failure_actions
             item.setReportedResult('FAILURE')
             self.pipeline._consecutive_failures += 1
-        if self.pipeline._disabled:
+        if self.pipeline.disabled:
             actions = self.pipeline.disabled_actions
         # Check here if we should disable so that we only use the disabled
         # reporters /after/ the last disable_at failure is still reported as
         # normal.
-        if (self.pipeline.disable_at and not self.pipeline._disabled and
+        if (self.pipeline.disable_at and not self.pipeline.disabled and
                 self.pipeline._consecutive_failures >= self.pipeline.disable_at):
-            self.pipeline._disabled = True
+            self.pipeline.disabled = True
         if actions:
             # noinspection PyBroadException
             try:

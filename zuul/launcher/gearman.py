@@ -133,7 +133,7 @@ class ZuulGearmanClient(gear.Client):
                 except Exception:
                     self.log.exception("Exception while checking functions")
                     continue
-                for line in req.response.split(b'\n'):
+                for line in req.response.decode().split('\n'):
                     parts = [x.strip() for x in line.split()]
                     if not parts or parts[0] == '.':
                         continue

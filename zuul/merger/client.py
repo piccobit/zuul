@@ -85,7 +85,7 @@ class MergeClient(object):
                   precedence=zuul.model.PRECEDENCE_NORMAL):
         uuid = str(uuid4().hex)
         job = gear.Job(name,
-                       json.dumps(data),
+                       json.dumps(data).encode(),
                        unique=uuid)
         self.log.debug("Submitting job %s with data %s" % (job, data))
         self.build_sets[uuid] = build_set
