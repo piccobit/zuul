@@ -778,12 +778,12 @@ class QueueItem(object):
             ret['url'] = changeish.url
         else:
             ret['url'] = None
-        ret['id'] = changeish._id()
+        ret['id'] = changeish.change_id()
         if self.item_ahead:
-            ret['item_ahead'] = self.item_ahead.change._id()
+            ret['item_ahead'] = self.item_ahead.change.change_id()
         else:
             ret['item_ahead'] = None
-        ret['items_behind'] = [i.change._id() for i in self.items_behind]
+        ret['items_behind'] = [i.change.change_id() for i in self.items_behind]
         ret['failing_reasons'] = self.current_build_set.failing_reasons
         ret['zuul_ref'] = self.current_build_set.ref
         if changeish.project:
@@ -873,11 +873,11 @@ class QueueItem(object):
             ret += '{}Project {} change <a href="{}">{}</a>\n'.format(indent_str,
                                                                       changeish.project.name,
                                                                       changeish.url,
-                                                                      changeish._id())
+                                                                      changeish.change_id())
         else:
             ret += '{}Project {} change {} based on {}\n'.format(indent_str,
                                                                  changeish.project.name,
-                                                                 changeish._id(),
+                                                                 changeish.change_id(),
                                                                  self.item_ahead)
         for job in self.pipeline.getJobs(self):
             build = self.current_build_set.getBuild(job.name)
@@ -954,11 +954,11 @@ class Change(Changeish):
         self.status = None
         self.owner = None
 
-    def _id(self):
+    def change_id(self):
         return "{},{}".format(self.number, self.patchset)
 
     def __repr__(self):
-        return '<Change 0x{:x} {}>'.format(id(self), self._id())
+        return '<Change 0x{:x} {}>'.format(id(self), self.change_id())
 
     def equals(self, other):
         if self.number == other.number and self.patchset == other.patchset:
@@ -1024,7 +1024,7 @@ class NullChange(Changeish):
         return None
 
     def equals(self, other):
-        if (self.project == other.project) and (other._id() is None):
+        if (self.project == other.project) and (other.change_id() is None):
             return True
         return False
 
