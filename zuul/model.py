@@ -89,7 +89,7 @@ class Pipeline(object):
         self.merge_failure_actions = []
         self.disabled_actions = []
         self.disable_at = None
-        self._consecutive_failures = 0
+        self.consecutive_failures = 0
         self.disabled = False
         self.window = None
         self.window_floor = None
