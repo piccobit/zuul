@@ -90,7 +90,7 @@ class Pipeline(object):
         self.disabled_actions = []
         self.disable_at = None
         self._consecutive_failures = 0
-        self._disabled = False
+        self.disabled = False
         self.window = None
         self.window_floor = None
         self.window_increase_type = None
@@ -495,12 +495,10 @@ class Job(object):
             self.parameter_function = other.parameter_function
         if other.branches:
             self.branches = other.branches[:]
-            # TODO(hds): Check if this really necessary
-            # self._branches = other._branches[:]
+            self._branches = other._branches[:]
         if other.files:
             self.files = other.files[:]
-            # TODO(hds): Check if this really necessary
-            # self._files = other._files[:]
+            self._files = other._files[:]
         if other.skip_if_matcher:
             self.skip_if_matcher = other.skip_if_matcher.copy()
         if other.swift:

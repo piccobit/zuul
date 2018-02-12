@@ -124,6 +124,7 @@ class MutexHandler(object):
 
 class ManagementEvent(object):
     """An event that should be processed within the main queue run loop"""
+
     def __init__(self):
         self._wait_event = threading.Event()
         self._exc_info = None
@@ -148,6 +149,7 @@ class ReconfigureEvent(ManagementEvent):
 
     :arg ConfigParser config: the new configuration
     """
+
     def __init__(self, config):
         super(ReconfigureEvent, self).__init__()
         self.config = config
@@ -288,7 +290,8 @@ class Scheduler(threading.Thread):
         # registerConnections as we don't want to do the onLoad event yet.
         return self._parseConfig(config_path, connections)
 
-    def _parseSkipIf(self, config_job):
+    @staticmethod
+    def _parseSkipIf(config_job):
         cm = change_matcher
         skip_matchers = []
 
@@ -339,7 +342,7 @@ class Scheduler(threading.Thread):
                 for reporter in pipeline.__getattribute__(action):
                     reporter.stop()
 
-    def _getDriver(self, dtype, connection_name, driver_config={}):
+    def _getDriver(self, dtype, connection_name, driver_config=None):
         # Instantiate a driver such as a trigger, source or reporter
         # TODO(jhesketh): Make this list dynamic or use entrypoints etc.
         # Stevedore was not a good fit here due to the nature of triggers.
@@ -347,6 +350,8 @@ class Scheduler(threading.Thread):
         # trigger can listen to a stream (from gerrit, for example) and the
         # scheduler decides which eventfilter to use. As such we want to load
         # trigger+connection pairs uniquely.
+        if driver_config is None:
+            driver_config = {}
         drivers = {
             'source': {
                 'gerrit': 'zuul.source.gerrit:GerritSource',
@@ -375,7 +380,7 @@ class Scheduler(threading.Thread):
         driver = drivers[dtype][driver_name].split(':')
         driver_instance = getattr(
             __import__(driver[0], fromlist=['']), driver[1])(
-                driver_config, self, connection
+            driver_config, self, connection
         )
 
         if connection:
@@ -386,10 +391,14 @@ class Scheduler(threading.Thread):
     def _getSourceDriver(self, connection_name):
         return self._getDriver('source', connection_name)
 
-    def _getReporterDriver(self, connection_name, driver_config={}):
+    def _getReporterDriver(self, connection_name, driver_config=None):
+        if driver_config is None:
+            driver_config = {}
         return self._getDriver('reporter', connection_name, driver_config)
 
-    def _getTriggerDriver(self, connection_name, driver_config={}):
+    def _getTriggerDriver(self, connection_name, driver_config=None):
+        if driver_config is None:
+            driver_config = {}
         return self._getDriver('trigger', connection_name, driver_config)
 
     def _parseConfig(self, config_path, connections):
@@ -431,10 +440,10 @@ class Scheduler(threading.Thread):
                                                          "Build failed.")
             pipeline.merge_failure_message = conf_pipeline.get(
                 'merge-failure-message', "Merge Failed.\n\nThis change or one "
-                "of its cross-repo dependencies was unable to be "
-                "automatically merged with the current state of its "
-                "repository. Please rebase the change and upload a new "
-                "patchset.")
+                                         "of its cross-repo dependencies was unable to be "
+                                         "automatically merged with the current state of its "
+                                         "repository. Please rebase the change and upload a new "
+                                         "patchset.")
             pipeline.success_message = conf_pipeline.get('success-message',
                                                          "Build succeeded.")
             pipeline.footer_message = conf_pipeline.get('footer-message', "")
@@ -447,7 +456,7 @@ class Scheduler(threading.Thread):
                 reporter_set = []
                 if conf_pipeline.get(conf_key):
                     for reporter_name, params \
-                        in list(conf_pipeline.get(conf_key).items()):
+                            in list(conf_pipeline.get(conf_key).items()):
                         reporter = self._getReporterDriver(reporter_name,
                                                            params)
                         reporter.setAction(conf_key)
@@ -488,8 +497,8 @@ class Scheduler(threading.Thread):
                 )
                 manager.changeish_filters.append(f)
 
-            for trigger_name, trigger_config\
-                in list(conf_pipeline.get('trigger').items()):
+            for trigger_name, trigger_config \
+                    in list(conf_pipeline.get('trigger').items()):
                 if trigger_name not in list(self.triggers.keys()):
                     self.triggers[trigger_name] = \
                         self._getTriggerDriver(trigger_name, trigger_config)
@@ -566,17 +575,17 @@ class Scheduler(threading.Thread):
                 for s in swift:
                     job.swift[s['name']] = s
 
-        def add_jobs(job_tree, config_jobs):
-            for job in config_jobs:
-                if isinstance(job, list):
-                    for x in job:
-                        add_jobs(job_tree, x)
-                if isinstance(job, dict):
-                    for parent, children in list(job.items()):
-                        parent_tree = job_tree.addJob(layout.getJob(parent))
+        def add_jobs(tree, jobs):
+            for j in jobs:
+                if isinstance(j, list):
+                    for x in j:
+                        add_jobs(tree, x)
+                if isinstance(j, dict):
+                    for parent, children in list(j.items()):
+                        parent_tree = tree.addJob(layout.getJob(parent))
                         add_jobs(parent_tree, children)
-                if isinstance(job, str):
-                    job_tree.addJob(layout.getJob(job))
+                if isinstance(j, str):
+                    tree.addJob(layout.getJob(j))
 
         for config_project in data.get('projects', []):
             project = Project(config_project['name'])
@@ -586,7 +595,7 @@ class Scheduler(threading.Thread):
             # the ultimate order is templates (in order) followed by
             # statically defined jobs.
             for requested_template in reversed(
-                config_project.get('template', [])):
+                    config_project.get('template', [])):
                 # Fetch the template from 'project-templates'
                 tpl = project_templates.get(
                     requested_template.get('name'))
@@ -600,8 +609,7 @@ class Scheduler(threading.Thread):
                 for pipeline in list(layout.pipelines.values()):
                     if pipeline.name in expanded:
                         config_project.update(
-                            {pipeline.name: expanded[pipeline.name] +
-                             config_project.get(pipeline.name, [])})
+                            {pipeline.name: expanded[pipeline.name] + config_project.get(pipeline.name, [])})
 
             layout.projects[config_project['name']] = project
             mode = config_project.get('merge-mode', 'merge-resolve')
@@ -617,7 +625,7 @@ class Scheduler(threading.Thread):
         layout.metajobs = []
 
         for pipeline in list(layout.pipelines.values()):
-            pipeline.manager._postConfig(layout)
+            pipeline.manager.postConfig(layout)
 
         return layout
 
@@ -629,7 +637,6 @@ class Scheduler(threading.Thread):
 
     def getProject(self, name):
         self.layout_lock.acquire()
-        p = None
         try:
             p = self.layout.projects.get(name)
             if p is None:
@@ -642,6 +649,7 @@ class Scheduler(threading.Thread):
 
     def addEvent(self, event):
         self.log.debug("Adding trigger event: %s" % event)
+        # noinspection PyBroadException
         try:
             if statsd:
                 statsd.incr('gerrit.event.%s' % event.type)
@@ -668,6 +676,7 @@ class Scheduler(threading.Thread):
         # processed.  Ensure that any other data from the event (eg,
         # timing) is recorded before setting the result.
         build.result = result
+        # noinspection PyBroadException
         try:
             if statsd and build.pipeline:
                 jobname = build.job.name.replace('.', '_')
@@ -789,10 +798,12 @@ class Scheduler(threading.Thread):
             os.unlink(pickle_file)
 
     def resume(self):
+        # noinspection PyBroadException
         try:
             self._load_queue()
         except:
             self.log.exception("Unable to load queue")
+        # noinspection PyBroadException
         try:
             self._delete_queue()
         except:
@@ -804,6 +815,7 @@ class Scheduler(threading.Thread):
         if self._exit:
             self.log.debug("Exiting")
             self._save_queue()
+            # noinspection PyProtectedMember
             os._exit(0)
 
     def _doReconfigureEvent(self, event):
@@ -828,6 +840,7 @@ class Scheduler(threading.Thread):
                 items_to_remove = []
                 builds_to_cancel = []
                 last_head = None
+                item = None
                 for shared_queue in old_pipeline.queues:
                     for item in shared_queue.queue:
                         if not item.item_ahead:
@@ -839,9 +852,9 @@ class Scheduler(threading.Thread):
                         project_name = item.change.project.name
                         item.change.project = layout.projects.get(project_name)
                         if not item.change.project:
-                            self.log.debug("Project %s not defined, "
-                                           "re-instantiating as foreign" %
-                                           project_name)
+                            self.log.debug("Project {} not defined, "
+                                           "re-instantiating as foreign"
+                                           .format(project_name))
                             project = Project(project_name, foreign=True)
                             layout.projects[project_name] = project
                             item.change.project = project
@@ -861,13 +874,14 @@ class Scheduler(threading.Thread):
                         builds_to_cancel.append(build)
                 for build in builds_to_cancel:
                     self.log.warning(
-                        "Canceling build %s during reconfiguration" % (build,))
+                        "Canceling build {} during reconfiguration".format(build, ))
+                    # noinspection PyBroadException
                     try:
                         self.launcher.cancel(build)
                     except Exception:
                         self.log.exception(
-                            "Exception while canceling build %s "
-                            "for change %s" % (build, item.change))
+                            "Exception while canceling build {} "
+                            "for change {}".format(build, item.change))
                     finally:
                         self.mutex.release(build.build_set.item, build.job)
             self.layout = layout
@@ -880,6 +894,7 @@ class Scheduler(threading.Thread):
                     for reporter in pipeline.__getattribute__(action):
                         reporter.postConfig()
             if statsd:
+                # noinspection PyBroadException
                 try:
                     for pipeline in list(self.layout.pipelines.values()):
                         items = len(pipeline.getAllItems())
@@ -974,6 +989,7 @@ class Scheduler(threading.Thread):
                 return
             self.log.debug("Run handler awake")
             self.run_handler_lock.acquire()
+            # noinspection PyBroadException
             try:
                 while not self.management_event_queue.empty():
                     self.process_management_queue()
@@ -1051,6 +1067,7 @@ class Scheduler(threading.Thread):
         self.log.debug("Fetching management event")
         event = self.management_event_queue.get()
         self.log.debug("Processing management event %s" % event)
+        # noinspection PyBroadException
         try:
             if isinstance(event, ReconfigureEvent):
                 self._doReconfigureEvent(event)
@@ -1092,6 +1109,7 @@ class Scheduler(threading.Thread):
             self.log.warning("Build %s is not associated with a pipeline" %
                              (build,))
             return
+        # noinspection PyBroadException
         try:
             build.estimated_time = float(self.time_database.getEstimatedTime(
                 build.job.name))
@@ -1112,6 +1130,7 @@ class Scheduler(threading.Thread):
             return
         if build.end_time and build.start_time and build.result:
             duration = build.end_time - build.start_time
+            # noinspection PyBroadException
             try:
                 self.time_database.update(
                     build.job.name, duration, build.result)
@@ -1137,9 +1156,7 @@ class Scheduler(threading.Thread):
         else:
             url_pattern = None
 
-        data = {}
-
-        data['zuul_version'] = self.zuul_version
+        data = {'zuul_version': self.zuul_version}
 
         if self._pause:
             ret = '<p><b>Queue only mode:</b> preparing to '
@@ -1170,6 +1187,7 @@ class BasePipelineManager(object):
     log = logging.getLogger("zuul.BasePipelineManager")
 
     def __init__(self, sched, pipeline):
+        self.changes_merge = None
         self.sched = sched
         self.pipeline = pipeline
         self.event_filters = []
@@ -1178,7 +1196,7 @@ class BasePipelineManager(object):
     def __str__(self):
         return "<{} {}>".format(self.__class__.__name__, self.pipeline.name)
 
-    def _postConfig(self, layout):
+    def postConfig(self, layout):
         self.log.info("Configured Pipeline Manager %s" % self.pipeline.name)
         self.log.info("  Source: %s" % self.pipeline.source)
         self.log.info("  Requirements:")
@@ -1189,29 +1207,29 @@ class BasePipelineManager(object):
             self.log.info("    %s" % e)
         self.log.info("  Projects:")
 
-        def log_jobs(tree, indent=0):
+        def log_jobs(job_tree, indent=0):
             istr = '    ' + ' ' * indent
-            if tree.job:
+            if job_tree.job:
                 efilters = ''
-                for b in tree.job._branches:
+                for b in job_tree.job._branches:
                     efilters += str(b)
-                for f in tree.job._files:
-                    efilters += str(f)
-                if tree.job.skip_if_matcher:
-                    efilters += str(tree.job.skip_if_matcher)
+                for file in job_tree.job._files:
+                    efilters += str(file)
+                if job_tree.job.skip_if_matcher:
+                    efilters += str(job_tree.job.skip_if_matcher)
                 if efilters:
                     efilters = ' ' + efilters
                 tags = []
-                if tree.job.hold_following_changes:
+                if job_tree.job.hold_following_changes:
                     tags.append('[hold]')
-                if not tree.job.voting:
+                if not job_tree.job.voting:
                     tags.append('[nonvoting]')
-                if tree.job.mutex:
-                    tags.append('[mutex: {}]'.format(tree.job.mutex))
+                if job_tree.job.mutex:
+                    tags.append('[mutex: {}]'.format(job_tree.job.mutex))
                 tags = ' '.join(tags)
-                self.log.info("%s%s%s %s" % (istr, repr(tree.job),
+                self.log.info("%s%s%s %s" % (istr, repr(job_tree.job),
                                              efilters, tags))
-            for x in tree.job_trees:
+            for x in job_tree.job_trees:
                 log_jobs(x, indent + 2)
 
         for p in list(layout.projects.values()):
@@ -1262,7 +1280,8 @@ class BasePipelineManager(object):
                 return True
         return False
 
-    def isChangeAlreadyInQueue(self, change, change_queue):
+    @staticmethod
+    def isChangeAlreadyInQueue(change, change_queue):
         # Checks any item in the specified change queue
         for item in change_queue.queue:
             if change.equals(item.change):
@@ -1270,7 +1289,8 @@ class BasePipelineManager(object):
         return False
 
     def reportStart(self, item):
-        if not self.pipeline._disabled:
+        if not self.pipeline.disabled:
+            # noinspection PyBroadException
             try:
                 self.log.info("Reporting start, action {} item {}"
                               .format(self.pipeline.start_actions, item))
@@ -1282,11 +1302,10 @@ class BasePipelineManager(object):
             except:
                 self.log.exception("Exception while reporting start:")
 
-    def sendReport(self, action_reporters, source, item,
-                   message=None):
+    def sendReport(self, action_reporters, source, item):
         """Sends the built message off to configured reporters.
 
-        Takes the action_reporters, item, message and extra options and
+        Takes the action_reporters, item, source and
         sends them to the pluggable reporters.
         """
         report_errors = []
@@ -1517,6 +1536,7 @@ class BasePipelineManager(object):
         dependent_items = self.getDependentItems(item)
         for job in jobs:
             self.log.debug("Found job %s for change %s" % (job, item.change))
+            # noinspection PyBroadException
             try:
                 build = self.sched.launcher.launch(job, item,
                                                    self.pipeline,
@@ -1540,6 +1560,7 @@ class BasePipelineManager(object):
         if prime and item.current_build_set.ref:
             item.resetAllBuilds()
         for build in old_build_set.getBuilds():
+            # noinspection PyBroadException
             try:
                 self.sched.launcher.cancel(build)
             except:
@@ -1577,7 +1598,7 @@ class BasePipelineManager(object):
                     self.reportItem(item)
                 except exceptions.MergeFailure:
                     pass
-            return (True, nnfi)
+            return True, nnfi
         dep_items = self.getFailingDependentItems(item)
         actionable = change_queue.isActionable(item)
         item.active = actionable
@@ -1587,9 +1608,9 @@ class BasePipelineManager(object):
             self.cancelJobs(item, prime=False)
         else:
             item_ahead_merged = False
-            if (item_ahead and item_ahead.change.is_merged):
+            if item_ahead and item_ahead.change.is_merged:
                 item_ahead_merged = True
-            if (item_ahead != nnfi and not item_ahead_merged):
+            if item_ahead != nnfi and not item_ahead_merged:
                 # Our current base is different than what we expected,
                 # and it's not because our current base merged.  Something
                 # ahead must have failed.
@@ -1613,7 +1634,7 @@ class BasePipelineManager(object):
             self.dequeueItem(item)
             changed = True
         if ((not item_ahead) and self.pipeline.areAllJobsComplete(item)
-            and item.live):
+                and item.live):
             try:
                 self.reportItem(item)
             except exceptions.MergeFailure:
@@ -1631,7 +1652,7 @@ class BasePipelineManager(object):
         if failing_reasons:
             self.log.debug("%s is a failing item because %s" %
                            (item, failing_reasons))
-        return (changed, nnfi)
+        return changed, nnfi
 
     def processQueue(self):
         # Do whatever needs to be done for each change in the queue
@@ -1660,23 +1681,25 @@ class BasePipelineManager(object):
 
     def updateBuildDescriptions(self, build_set):
         for build in build_set.getBuilds():
+            # noinspection PyBroadException
             try:
                 desc = self.formatDescription(build)
                 self.sched.launcher.setBuildDescription(build, desc)
             except:
                 # Log the failure and let loop continue
                 self.log.error("Failed to update description for build %s" %
-                               (build))
+                               build)
 
         if build_set.previous_build_set:
             for build in build_set.previous_build_set.getBuilds():
+                # noinspection PyBroadException
                 try:
                     desc = self.formatDescription(build)
                     self.sched.launcher.setBuildDescription(build, desc)
                 except:
                     # Log the failure and let loop continue
                     self.log.error("Failed to update description for "
-                                   "build %s in previous build set" % (build))
+                                   "build %s in previous build set" % build)
 
     def onBuildStarted(self, build):
         self.log.debug("Build %s started" % build)
@@ -1721,7 +1744,7 @@ class BasePipelineManager(object):
             change_queue = item.queue
             if not (succeeded and merged):
                 self.log.debug("Reported change %s failed tests or failed "
-                               "to merge" % (item.change))
+                               "to merge" % item.change)
                 change_queue.decreaseWindowSize()
                 self.log.debug("%s window size decreased to %s" %
                                (change_queue, change_queue.window))
@@ -1745,7 +1768,7 @@ class BasePipelineManager(object):
             self.log.debug("No jobs for change %s" % item.change)
             actions = []
         elif self.pipeline.didAllJobsSucceed(item):
-            self.log.debug("success %s" % (self.pipeline.success_actions))
+            self.log.debug("success %s" % self.pipeline.success_actions)
             actions = self.pipeline.success_actions
             item.setReportedResult('SUCCESS')
             self.pipeline._consecutive_failures = 0
@@ -1762,9 +1785,10 @@ class BasePipelineManager(object):
         # reporters /after/ the last disable_at failure is still reported as
         # normal.
         if (self.pipeline.disable_at and not self.pipeline._disabled and
-            self.pipeline._consecutive_failures >= self.pipeline.disable_at):
+                self.pipeline._consecutive_failures >= self.pipeline.disable_at):
             self.pipeline._disabled = True
         if actions:
+            # noinspection PyBroadException
             try:
                 self.log.info("Reporting item %s, actions: %s" %
                               (item, actions))
@@ -1778,7 +1802,8 @@ class BasePipelineManager(object):
         self.updateBuildDescriptions(item.current_build_set)
         return ret
 
-    def formatDescription(self, build):
+    @staticmethod
+    def formatDescription(build):
         concurrent_changes = ''
         concurrent_builds = ''
         other_builds = ''
@@ -1883,6 +1908,7 @@ class BasePipelineManager(object):
     def reportStats(self, item):
         if not statsd:
             return
+        # noinspection PyBroadException
         try:
             # Update the gauge on enqueue and dequeue, but timers only
             # when dequeing.
@@ -1911,6 +1937,9 @@ class BasePipelineManager(object):
         except:
             self.log.exception("Exception reporting pipeline stats")
 
+    def getChangeQueue(self, change, change_queue):
+        pass
+
 
 class DynamicChangeQueueContextManager(object):
     def __init__(self, change_queue):
@@ -1928,8 +1957,8 @@ class IndependentPipelineManager(BasePipelineManager):
     log = logging.getLogger("zuul.IndependentPipelineManager")
     changes_merge = False
 
-    def _postConfig(self, layout):
-        super(IndependentPipelineManager, self)._postConfig(layout)
+    def postConfig(self, layout):
+        super(IndependentPipelineManager, self).postConfig(layout)
 
     def getChangeQueue(self, change, existing=None):
         # creates a new change queue for every change
@@ -2021,8 +2050,8 @@ class DependentPipelineManager(BasePipelineManager):
     def __init__(self, *args, **kwargs):
         super(DependentPipelineManager, self).__init__(*args, **kwargs)
 
-    def _postConfig(self, layout):
-        super(DependentPipelineManager, self)._postConfig(layout)
+    def postConfig(self, layout):
+        super(DependentPipelineManager, self).postConfig(layout)
         self.buildChangeQueues()
 
     def buildChangeQueues(self):
@@ -2069,7 +2098,7 @@ class DependentPipelineManager(BasePipelineManager):
                     merged_a = True
                     break  # this breaks out of 'for b' and continues 'for a'
             if not merged_a:
-                self.log.debug("Keeping queue %s" % (a))
+                self.log.debug("Keeping queue %s" % a)
                 new_change_queues.append(a)
         return new_change_queues
 
