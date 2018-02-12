@@ -1261,15 +1261,15 @@ class BasePipelineManager(object):
     def eventMatches(self, event, change):
         if event.forced_pipeline:
             if event.forced_pipeline == self.pipeline.name:
-                self.log.debug("Event {} for change {} was directly assigned "
-                               "to pipeline {}".format(event, change, self))
+                self.log.debug("Event %s for change %s was directly assigned "
+                               "to pipeline %s" % (event, change, self))
                 return True
             else:
                 return False
         for ef in self.event_filters:
             if ef.matches(event, change):
-                self.log.debug("Event {} for change {} matched {} "
-                               "in pipeline {}".format(event, change, ef, self))
+                self.log.debug("Event %s for change %s matched %s "
+                               "in pipeline %s" % (event, change, ef, self))
                 return True
         return False
 
@@ -1292,13 +1292,11 @@ class BasePipelineManager(object):
         if not self.pipeline.disabled:
             # noinspection PyBroadException
             try:
-                self.log.info("Reporting start, action {} item {}"
-                              .format(self.pipeline.start_actions, item))
+                self.log.info(f"Reporting start, action {self.pipeline.start_actions} item {item}")
                 ret = self.sendReport(self.pipeline.start_actions,
                                       self.pipeline.source, item)
                 if ret:
-                    self.log.error("Reporting item start {} received: {}"
-                                   .format(item, ret))
+                    self.log.error(f"Reporting item start {item} received: {ret}")
             except:
                 self.log.exception("Exception while reporting start:")
 
@@ -1341,9 +1339,7 @@ class BasePipelineManager(object):
         while item.item_ahead:
             items.append(item.item_ahead)
             item = item.item_ahead
-        self.log.info("Change {} depends on changes {}"
-                      .format(orig_item.change,
-                              [x.change for x in items]))
+        self.log.info(f"Change {orig_item.change} depends on changes {[x.change for x in items]}")
         return items
 
     def getItemForChange(self, change):
@@ -1365,12 +1361,12 @@ class BasePipelineManager(object):
             return
         old_item = self.findOldVersionOfChangeAlreadyInQueue(change)
         if old_item:
-            self.log.debug("Change {} is a new version of {}, removing {}"
-                           .format(change, old_item.change, old_item))
+            self.log.debug("Change %s is a new version of %s, removing %s"
+                           % (change, old_item.change, old_item))
             self.removeItem(old_item)
 
     def removeAbandonedChange(self, change):
-        self.log.debug("Change {} abandoned, removing.".format(change))
+        self.log.debug("Change %s abandoned, removing." % change)
         for item in self.pipeline.getAllItems():
             if not item.live:
                 continue
@@ -1380,8 +1376,8 @@ class BasePipelineManager(object):
     def reEnqueueItem(self, item, last_head):
         with self.getChangeQueue(item.change, last_head.queue) as change_queue:
             if change_queue:
-                self.log.debug("Re-enqueing change {} in queue {}"
-                               .format(item.change, change_queue))
+                self.log.debug("Re-enqueing change %s in queue %s"
+                               % (item.change, change_queue))
                 change_queue.enqueueItem(item)
 
                 # Re-set build results in case any new jobs have been
@@ -1398,55 +1394,55 @@ class BasePipelineManager(object):
                 self.reportStats(item)
                 return True
             else:
-                self.log.error("Unable to find change queue for project {}"
-                               .format(item.change.project))
+                self.log.error("Unable to find change queue for project %s"
+                               % (item.change.project))
                 return False
 
     def addChange(self, change, quiet=False, enqueue_time=None,
                   ignore_requirements=False, live=True,
                   change_queue=None):
-        self.log.debug("Considering adding change {}".format(change))
+        self.log.debug("Considering adding change %s" % change)
 
         # If we are adding a live change, check if it's a live item
         # anywhere in the pipeline.  Otherwise, we will perform the
         # duplicate check below on the specific change_queue.
         if live and self.isChangeAlreadyInPipeline(change):
-            self.log.debug("Change {} is already in pipeline, "
-                           "ignoring".format(change))
+            self.log.debug("Change %s is already in pipeline, "
+                           "ignoring" % change)
             return True
 
         if not self.isChangeReadyToBeEnqueued(change):
-            self.log.debug("Change {} is not ready to be enqueued, ignoring"
-                           .format(change))
+            self.log.debug("Change %s is not ready to be enqueued, ignoring"
+                           % change)
             return False
 
         if not ignore_requirements:
             for f in self.changeish_filters:
                 if not f.matches(change):
-                    self.log.debug("Change {} does not match pipeline "
-                                   "requirement {}".format(change, f))
+                    self.log.debug("Change %s does not match pipeline "
+                                   "requirement %s" % (change, f))
                     return False
 
         with self.getChangeQueue(change, change_queue) as change_queue:
             if not change_queue:
                 self.log.debug("Unable to find change queue for "
-                               "change {} in project {}"
-                               .format(change, change.project))
+                               "change %s in project %s"
+                               % (change, change.project))
                 return False
 
             if not self.enqueueChangesAhead(change, quiet, ignore_requirements,
                                             change_queue):
                 self.log.debug("Failed to enqueue changes "
-                               "ahead of {}".format(change))
+                               "ahead of %s" % change)
                 return False
 
             if self.isChangeAlreadyInQueue(change, change_queue):
-                self.log.debug("Change {} is already in queue, "
-                               "ignoring".format(change))
+                self.log.debug("Change %s is already in queue, "
+                               "ignoring" % change)
                 return True
 
-            self.log.debug("Adding change {} to queue {}"
-                           .format(change, change_queue))
+            self.log.debug("Adding change %s to queue %s"
+                           % (change, change_queue))
             item = change_queue.enqueueChange(change)
             if enqueue_time:
                 item.enqueue_time = enqueue_time
