@@ -356,12 +356,12 @@ class Gearman(object):
             return build
 
         gearman_job = gear.Job(name, json.dumps(params).encode(),
-                               unique=uuid.encode())
+                               unique=uuid)
         build.__gearman_job = gearman_job
         self.builds[uuid] = build
 
         if self.job_registration and not self.isJobRegistered(
-                gearman_job.name):
+                gearman_job.name.encode()):
             self.log.error("Job %s is not registered with Gearman" %
                            gearman_job)
             self.onBuildCompleted(gearman_job, 'NOT_REGISTERED')
