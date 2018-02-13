@@ -47,6 +47,7 @@ class GearmanCleanup(threading.Thread):
             self.wake_event.wait(300)
             if self._stopped:
                 return
+            # noinspection PyBroadException
             try:
                 self.gearman.lookForLostBuilds()
             except:
@@ -97,6 +98,7 @@ class ZuulGearmanClient(gear.Client):
         self.__zuul_gearman.onDisconnect(job)
 
     def handleStatusRes(self, packet):
+        job = None
         try:
             job = super(ZuulGearmanClient, self).handleStatusRes(packet)
         except gear.UnknownJobError:
@@ -127,6 +129,7 @@ class ZuulGearmanClient(gear.Client):
             now = time.time()
             last_functions = set()
             for connection in self.active_connections:
+                # noinspection PyBroadException
                 try:
                     req = gear.StatusAdminRequest()
                     connection.sendAdminRequest(req, timeout=300)
@@ -175,7 +178,7 @@ class Gearman(object):
         self.gearman.addServer(server, port)
 
         if (config.has_option('gearman_server', 'start') and
-            config.getboolean('gearman_server', 'start')):
+                config.getboolean('gearman_server', 'start')):
             self.gearman.waitForGearmanToSettle()
 
         self.cleanup_thread = GearmanCleanup(self)
@@ -201,12 +204,13 @@ class Gearman(object):
             self.log.debug("Function %s is registered" % name)
             return True
         if ((time.time() - self.function_cache_time) <
-            self.negative_function_cache_ttl):
+                self.negative_function_cache_ttl):
             self.log.debug("Function %s is not registered "
                            "(negative ttl in effect)" % name)
             return False
         self.function_cache_time = time.time()
         for connection in self.gearman.active_connections:
+            # noinspection PyBroadException
             try:
                 req = gear.StatusAdminRequest()
                 connection.sendAdminRequest(req, timeout=300)
@@ -231,7 +235,7 @@ class Gearman(object):
         # as workers cannot necessarily handle lists.
 
         if callable(job.parameter_function):
-            pargs = inspect.getargspec(job.parameter_function)
+            pargs = inspect.getfullargspec(job.parameter_function)
             if len(pargs.args) == 2:
                 job.parameter_function(item, params)
             else:
@@ -273,7 +277,9 @@ class Gearman(object):
                 for key, value in list(swift_instructions.items()):
                     params['_'.join(['SWIFT', name, key])] = value
 
-    def launch(self, job, item, pipeline, dependent_items=[]):
+    def launch(self, job, item, pipeline, dependent_items=None):
+        if dependent_items is None:
+            dependent_items = []
         uuid = str(uuid4().hex)
         self.log.info(
             "Launch job %s (uuid: %s) for change %s with dependent "
@@ -379,7 +385,10 @@ class Gearman(object):
             precedence = gear.PRECEDENCE_HIGH
         elif pipeline.precedence == zuul.model.PRECEDENCE_LOW:
             precedence = gear.PRECEDENCE_LOW
+        else:
+            precedence = gear.PRECEDENCE_NORMAL
 
+        # noinspection PyBroadException
         try:
             self.gearman.submitJob(gearman_job, precedence=precedence,
                                    timeout=300)
@@ -404,7 +413,7 @@ class Gearman(object):
 
         build.canceled = True
         try:
-            job = build.__gearman_job  # noqa
+            _ = build.__gearman_job
         except AttributeError:
             self.log.debug("Build %s has no associated gearman job" % build)
             return
@@ -495,6 +504,7 @@ class Gearman(object):
         self.log.debug("Response to cancel build %s request: %s" %
                        (build, req.response.strip()))
         if req.response.startswith("OK"):
+            # noinspection PyBroadException
             try:
                 del self.builds[unique]
             except:
@@ -507,7 +517,7 @@ class Gearman(object):
         data = dict(name=build.job.name,
                     number=build.number)
         stop_job = gear.Job("stop:%s" % build.__gearman_manager,
-                            json.dumps(data), unique=stop_uuid)
+                            json.dumps(data).encode(), unique=stop_uuid)
         self.meta_jobs[stop_uuid] = stop_job
         self.log.debug("Submitting stop job: %s", stop_job)
         self.gearman.submitJob(stop_job, precedence=gear.PRECEDENCE_HIGH,
@@ -529,7 +539,7 @@ class Gearman(object):
         data = dict(name=build.job.name,
                     number=build.number,
                     html_description=desc)
-        desc_job = gear.Job(name, json.dumps(data), unique=desc_uuid)
+        desc_job = gear.Job(name, json.dumps(data).encode(), unique=desc_uuid)
         self.meta_jobs[desc_uuid] = desc_job
         self.log.debug("Submitting describe job: %s", desc_job)
         self.gearman.submitJob(desc_job, precedence=gear.PRECEDENCE_LOW,
@@ -546,6 +556,7 @@ class Gearman(object):
             if not job.handle:
                 # The build hasn't been enqueued yet
                 continue
+            # noinspection PyUnresolvedReferences
             p = gear.Packet(gear.constants.REQ, gear.constants.GET_STATUS,
                             job.handle)
             job.connection.sendPacket(p)
