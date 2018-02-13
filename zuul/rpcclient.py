@@ -36,7 +36,7 @@ class RPCClient(object):
     def submitJob(self, name, data):
         self.log.debug("Submitting job %s with data %s" % (name, data))
         job = gear.Job(name,
-                       json.dumps(data),
+                       json.dumps(data).encode(),
                        unique=str(time.time()))
         self.gearman.submitJob(job, timeout=300)
 

@@ -66,7 +66,7 @@ def main():
     c.waitForServer()
 
     job = gear.Job("build:%s" % args.job,
-                   json.dumps(data),
+                   json.dumps(data).encode(),
                    unique=data['ZUUL_UUID'])
     c.submitJob(job, precedence=gear.PRECEDENCE_HIGH)
 
