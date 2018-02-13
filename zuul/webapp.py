@@ -113,7 +113,7 @@ class WebApp(threading.Thread):
                 raise
 
         if path == 'status':
-            response = webob.Response(body=self.cache,
+            response = webob.Response(body=self.cache.encode(),
                                       content_type='application/json')
         else:
             status = self._status_for_change(path)

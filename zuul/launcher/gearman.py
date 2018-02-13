@@ -213,7 +213,7 @@ class Gearman(object):
             except Exception:
                 self.log.exception("Exception while checking functions")
                 continue
-            for line in req.response.split('\n'):
+            for line in req.response.split(b'\n'):
                 parts = [x.strip() for x in line.split()]
                 if not parts or parts[0] == '.':
                     continue
@@ -355,8 +355,8 @@ class Gearman(object):
             self.sched.onBuildCompleted(build, 'SUCCESS')
             return build
 
-        gearman_job = gear.Job(name, json.dumps(params),
-                               unique=uuid)
+        gearman_job = gear.Job(name, json.dumps(params).encode(),
+                               unique=uuid.encode())
         build.__gearman_job = gearman_job
         self.builds[uuid] = build
 
@@ -436,8 +436,9 @@ class Gearman(object):
         if job.unique in self.meta_jobs:
             del self.meta_jobs[job.unique]
             return
+        unique = job.unique.decode()
 
-        build = self.builds.get(job.unique)
+        build = self.builds.get(unique)
         if build:
             data = getJobData(job)
             build.node_labels = data.get('node_labels', [])
@@ -452,15 +453,16 @@ class Gearman(object):
                 self.sched.onBuildCompleted(build, result)
             # The test suite expects the build to be removed from the
             # internal dict after it's added to the report queue.
-            del self.builds[job.unique]
+            del self.builds[unique]
         else:
             if not job.name.startswith("stop:"):
-                self.log.error("Unable to find build %s" % job.unique)
+                self.log.error("Unable to find build %s" % unique)
 
     def onWorkStatus(self, job):
+        unique = job.unique.decode()
         data = getJobData(job)
         self.log.debug("Build %s update %s" % (job, data))
-        build = self.builds.get(job.unique)
+        build = self.builds.get(unique)
         if build:
             # Allow URL to be updated
             build.url = data.get('url') or build.url
@@ -473,7 +475,7 @@ class Gearman(object):
                 build.__gearman_manager = data.get('manager')
                 self.sched.onBuildStarted(build)
         else:
-            self.log.error("Unable to find build %s" % job.unique)
+            self.log.error("Unable to find build %s" % unique)
 
     def onDisconnect(self, job):
         self.log.info("Gearman job %s lost due to disconnect" % job)
@@ -486,13 +488,15 @@ class Gearman(object):
     def cancelJobInQueue(self, build):
         job = build.__gearman_job
 
+        unique = job.unique.decode()
+
         req = gear.CancelJobAdminRequest(job.handle)
         job.connection.sendAdminRequest(req, timeout=300)
         self.log.debug("Response to cancel build %s request: %s" %
                        (build, req.response.strip()))
         if req.response.startswith("OK"):
             try:
-                del self.builds[job.unique]
+                del self.builds[unique]
             except:
                 pass
             return True

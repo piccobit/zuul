@@ -105,7 +105,8 @@ class MergeClient(object):
         self.submitJob('merger:update', data, build_set, precedence)
 
     def onBuildCompleted(self, job):
-        build_set = self.build_sets.get(job.unique)
+        unique = job.unique.decode()
+        build_set = self.build_sets.get(unique)
         if build_set:
             data = getJobData(job)
             zuul_url = data.get('zuul_url')
@@ -119,6 +120,6 @@ class MergeClient(object):
                                         merged, updated, commit)
             # The test suite expects the build_set to be removed from
             # the internal dict after the wake flag is set.
-            del self.build_sets[job.unique]
+            del self.build_sets[unique]
         else:
-            self.log.error("Unable to find build set for uuid %s" % job.unique)
+            self.log.error("Unable to find build set for uuid %s" % unique)
