@@ -118,7 +118,7 @@ class WebApp(threading.Thread):
         else:
             status = self._status_for_change(path)
             if status:
-                response = webob.Response(body=status,
+                response = webob.Response(body=status.encode(),
                                           content_type='application/json')
             else:
                 raise webob.exc.HTTPNotFound()
