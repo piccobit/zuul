@@ -15,3 +15,4 @@ doc/build/*
 zuul/versioninfo
 dist/
 tmp/
+.python-version
