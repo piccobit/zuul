@@ -19,6 +19,7 @@ import json
 import time
 from six.moves import queue as Queue
 from six.moves import urllib
+# import urllib.request
 import paramiko
 import logging
 import pprint
@@ -410,11 +411,13 @@ class GerritConnection(BaseConnection):
     def getInfoRefs(self, project):
         url = "%s/p/%s/info/refs?service=git-upload-pack" % (
             self.baseurl, project)
+        resp = None
         try:
-            data = urllib.request.urlopen(url).read()
+            resp = urllib.request.urlopen(url)
         except:
             self.log.error("Cannot get references from %s" % url)
             raise  # keeps urllib error informations
+        data = resp.read().decode()
         ret = {}
         read_headers = False
         read_advertisement = False

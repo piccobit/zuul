@@ -4438,7 +4438,7 @@ For CI problems and help debugging, contact ci@example.org"""
 
         self.assertEqual(3, self.sched.layout.pipelines['check'].disable_at)
         self.assertEqual(
-            0, self.sched.layout.pipelines['check']._consecutive_failures)
+            0, self.sched.layout.pipelines['check'].consecutive_failures)
         self.assertFalse(self.sched.layout.pipelines['check'].disabled)
 
         A = self.fake_gerrit.addFakeChange('org/project', 'master', 'A')
@@ -4470,14 +4470,14 @@ For CI problems and help debugging, contact ci@example.org"""
         self.waitUntilSettled()
 
         self.assertEqual(
-            2, self.sched.layout.pipelines['check']._consecutive_failures)
+            2, self.sched.layout.pipelines['check'].consecutive_failures)
         self.assertFalse(self.sched.layout.pipelines['check'].disabled)
 
         self.fake_gerrit.addEvent(C.getPatchsetCreatedEvent(1))
         self.waitUntilSettled()
 
         self.assertEqual(
-            0, self.sched.layout.pipelines['check']._consecutive_failures)
+            0, self.sched.layout.pipelines['check'].consecutive_failures)
         self.assertFalse(self.sched.layout.pipelines['check'].disabled)
 
         self.fake_gerrit.addEvent(D.getPatchsetCreatedEvent(1))
@@ -4487,7 +4487,7 @@ For CI problems and help debugging, contact ci@example.org"""
 
         # We should be disabled now
         self.assertEqual(
-            3, self.sched.layout.pipelines['check']._consecutive_failures)
+            3, self.sched.layout.pipelines['check'].consecutive_failures)
         self.assertTrue(self.sched.layout.pipelines['check'].disabled)
 
         # We need to wait between each of these patches to make sure the
@@ -4532,7 +4532,7 @@ For CI problems and help debugging, contact ci@example.org"""
 
         self.assertEqual(3, self.sched.layout.pipelines['check'].disable_at)
         self.assertEqual(
-            0, self.sched.layout.pipelines['check']._consecutive_failures)
+            0, self.sched.layout.pipelines['check'].consecutive_failures)
         self.assertFalse(self.sched.layout.pipelines['check'].disabled)
 
         self.fake_gerrit.addEvent(J.getPatchsetCreatedEvent(1))
@@ -4540,7 +4540,7 @@ For CI problems and help debugging, contact ci@example.org"""
         self.waitUntilSettled()
 
         self.assertEqual(
-            2, self.sched.layout.pipelines['check']._consecutive_failures)
+            2, self.sched.layout.pipelines['check'].consecutive_failures)
         self.assertFalse(self.sched.layout.pipelines['check'].disabled)
 
         # J and K went back to gerrit

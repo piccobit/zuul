@@ -202,8 +202,7 @@ class Pipeline(object):
                 return False
         return True
 
-    @staticmethod
-    def didMergerSucceed(item):
+    def didMergerSucceed(self, item):
         if item.current_build_set.unable_to_merge:
             return False
         return True
@@ -378,8 +377,7 @@ class ChangeQueue(object):
         item.items_behind = []
         item.dequeue_time = time.time()
 
-    @staticmethod
-    def moveItem(item, item_ahead):
+    def moveItem(self, item, item_ahead):
         if item.item_ahead == item_ahead:
             return False
         # Remove from current location
@@ -577,7 +575,7 @@ class JobTree(object):
 
 
 class Build(object):
-    def __init__(self, job, uuid):
+    def __init__(self, job, uuid, worker=None):
         self.job = job
         self.uuid = uuid
         self.url = None
@@ -592,7 +590,7 @@ class Build(object):
         self.canceled = False
         self.retry = False
         self.parameters = {}
-        self.worker = Worker()
+        self.worker = Worker(worker)
         self.node_labels = []
         self.node_name = None
 
@@ -604,8 +602,10 @@ class Build(object):
 class Worker(object):
     """A model of the worker running a job"""
 
-    def __init__(self):
-        self.name = "Unknown"
+    def __init__(self, worker=None):
+        if worker is None:
+            worker = "Unknown"
+        self.name = worker
         self.hostname = None
         self.ips = []
         self.fqdn = None
@@ -694,7 +694,7 @@ class BuildSet(object):
         return [self.builds.get(x) for x in keys]
 
     def getTries(self, job_name):
-        return self.tries.get(job_name)
+        return self.tries.get(job_name, 0)
 
 
 class QueueItem(object):
@@ -1017,8 +1017,7 @@ class NullChange(Changeish):
     def __repr__(self):
         return '<NullChange for {}>'.format(self.project)
 
-    @staticmethod
-    def _id():
+    def _id(self):
         return None
 
     def equals(self, other):
@@ -1085,8 +1084,7 @@ class BaseFilter(object):
         self._reject_approvals = copy.deepcopy(reject_approvals)
         self.reject_approvals = self._tidy_approvals(reject_approvals)
 
-    @staticmethod
-    def _tidy_approvals(approvals):
+    def _tidy_approvals(self, approvals):
         for a in approvals:
             for k, v in list(a.items()):
                 if k == 'username':
@@ -1101,8 +1099,7 @@ class BaseFilter(object):
                 del a['email-filter']
         return approvals
 
-    @staticmethod
-    def _match_approval_required_approval(rapproval, approval):
+    def _match_approval_required_approval(self, rapproval, approval):
         # Check if the required approval and approval match
         if 'description' not in approval:
             return False

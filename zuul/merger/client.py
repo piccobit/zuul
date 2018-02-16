@@ -120,6 +120,7 @@ class MergeClient(object):
                                         merged, updated, commit)
             # The test suite expects the build_set to be removed from
             # the internal dict after the wake flag is set.
-            del self.build_sets[unique]
+            # TODO(hds): Is this really necessary?
+            # del self.build_sets[unique]
         else:
             self.log.error("Unable to find build set for uuid %s" % unique)

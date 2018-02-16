@@ -200,7 +200,7 @@ class Gearman(object):
                     self.function_cache = set()
                     self.function_cache_time = 0
                     break
-        if name in self.function_cache:
+        if name.encode() in self.function_cache:
             self.log.debug("Function %s is registered" % name)
             return True
         if ((time.time() - self.function_cache_time) <
@@ -222,7 +222,7 @@ class Gearman(object):
                 if not parts or parts[0] == '.':
                     continue
                 self.function_cache.add(parts[0])
-        if name in self.function_cache:
+        if name.encode() in self.function_cache:
             self.log.debug("Function %s is registered" % name)
             return True
         self.log.debug("Function %s is not registered" % name)
@@ -354,7 +354,7 @@ class Gearman(object):
             name = "build:%s:%s" % (job.name, params['ZUUL_NODE'])
         else:
             name = "build:%s" % job.name
-        build = Build(job, uuid)
+        build = Build(job, uuid, "CIP-Zuul")
         build.parameters = params
 
         if job.name == 'noop':
@@ -367,7 +367,7 @@ class Gearman(object):
         self.builds[uuid] = build
 
         if self.job_registration and not self.isJobRegistered(
-                gearman_job.name.encode()):
+                gearman_job.name):
             self.log.error("Job %s is not registered with Gearman" %
                            gearman_job)
             self.onBuildCompleted(gearman_job, 'NOT_REGISTERED')
@@ -442,10 +442,10 @@ class Gearman(object):
         self.log.debug("Unable to cancel build %s" % build)
 
     def onBuildCompleted(self, job, result=None):
-        if job.unique in self.meta_jobs:
-            del self.meta_jobs[job.unique]
-            return
         unique = job.unique.decode()
+        if unique in self.meta_jobs:
+            del self.meta_jobs[unique]
+            return
 
         build = self.builds.get(unique)
         if build:

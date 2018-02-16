@@ -290,8 +290,7 @@ class Scheduler(threading.Thread):
         # registerConnections as we don't want to do the onLoad event yet.
         return self._parseConfig(config_path, connections)
 
-    @staticmethod
-    def _parseSkipIf(config_job):
+    def _parseSkipIf(self, config_job):
         cm = change_matcher
         skip_matchers = []
 
@@ -1280,8 +1279,7 @@ class BasePipelineManager(object):
                 return True
         return False
 
-    @staticmethod
-    def isChangeAlreadyInQueue(change, change_queue):
+    def isChangeAlreadyInQueue(self, change, change_queue):
         # Checks any item in the specified change queue
         for item in change_queue.queue:
             if change.equals(item.change):
@@ -1774,14 +1772,14 @@ class BasePipelineManager(object):
         else:
             actions = self.pipeline.failure_actions
             item.setReportedResult('FAILURE')
-            self.pipeline._consecutive_failures += 1
+            self.pipeline.consecutive_failures += 1
         if self.pipeline.disabled:
             actions = self.pipeline.disabled_actions
         # Check here if we should disable so that we only use the disabled
         # reporters /after/ the last disable_at failure is still reported as
         # normal.
         if (self.pipeline.disable_at and not self.pipeline.disabled and
-                self.pipeline._consecutive_failures >= self.pipeline.disable_at):
+                self.pipeline.consecutive_failures >= self.pipeline.disable_at):
             self.pipeline.disabled = True
         if actions:
             # noinspection PyBroadException
@@ -1798,8 +1796,7 @@ class BasePipelineManager(object):
         self.updateBuildDescriptions(item.current_build_set)
         return ret
 
-    @staticmethod
-    def formatDescription(build):
+    def formatDescription(self, build):
         concurrent_changes = ''
         concurrent_builds = ''
         other_builds = ''
@@ -1840,12 +1837,12 @@ class BasePipelineManager(object):
             other_build = build.build_set.next_build_set.getBuild(
                 build.job.name)
             if other_build:
-                other_builds += """\
+                other_builds += f"""\
 <li>
-  Succeeded by: <a href="{build.url}">
-  {build.job.name} #{build.number}</a>
+  Succeeded by: <a href="{other_build.url}">
+  {other_build.job.name} #{other_build.number}</a>
 </li>
-""".format(build=other_build)
+"""
 
         result = build.build_set.result
 
