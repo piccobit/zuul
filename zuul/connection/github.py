@@ -162,13 +162,16 @@ class GitHubWatcher(threading.Thread):
 
     def _run(self):
         try:
+            # TODO(hds)
+            pass
         except:
             self.log.exception("Exception on webhook event stream:")
             time.sleep(5)
         finally:
             # If we don't close on exceptions to connect we can leak the
             # connection and DoS GitHub.
-            client.close()
+            # TODO(hds)
+            pass
 
     def run(self):
         while not self._stopped:
@@ -233,14 +236,6 @@ class GitHubConnection(BaseConnection):
 
     def eventDone(self):
         self.event_queue.task_done()
-
-    def _open(self):
-        try:
-            self.client = client
-        except Exception:
-            client.close()
-            self.client = None
-            raise
 
     def onLoad(self):
         self.log.debug("Starting GitHub Conncetion/Watchers")
