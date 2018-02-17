@@ -186,26 +186,18 @@ class GitHubConnection(BaseConnection):
     def __init__(self, connection_name, connection_config):
         super(GitHubConnection, self).__init__(connection_name,
                                                connection_config)
-        if 'server' not in self.connection_config:
-            raise Exception('server is required for github connections in '
-                            '%s' % self.connection_name)
         if 'user' not in self.connection_config:
             raise Exception('user is required for github connections in '
                             '%s' % self.connection_name)
 
-        self.user = self.connection_config.get('user')
-        self.server = self.connection_config.get('server')
-        self.port = int(self.connection_config.get('port', 29418))
-        self.keyfile = self.connection_config.get('sshkey', None)
-        self.keepalive = int(self.connection_config.get('keepalive', 60))
-        self.strip_branch_ref = bool(self.connection_config.get(
-            'strip_branch_ref'))
-        self.watcher_thread = None
-        self.event_queue = None
-        self.client = None
+        if 'token' not in self.connection_config:
+            raise Exception('token is required for github connections in '
+                            '%s' % self.connection_name)
 
-        self.baseurl = self.connection_config.get('baseurl',
-                                                  'https://%s' % self.server)
+        self.user = self.connection_config.get('user')
+        self.token = self.connection_config.get('token')
+        self.listen_address = self.connection_config.get('listen_address', '127.0.0.1')
+        self.listen_port = int(self.connection_config.get('listen_port', 8989))
 
         self._change_cache = {}
         self.github_event_connector = None

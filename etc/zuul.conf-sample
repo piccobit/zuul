@@ -48,3 +48,9 @@ default_to=you@example.com
 [connection mydatabase]
 driver=sql
 dburi=mysql+pymysql://user@localhost/zuul
+
+[connection github]
+user=username
+token=api_token
+listen_address=0.0.0.0
+listen_port=8989
