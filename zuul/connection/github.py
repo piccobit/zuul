@@ -13,14 +13,16 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+import asyncio
 import threading
-import select
 import json
 import time
 from six.moves import queue as Queue
 import logging
 import pprint
 import voluptuous as v
+
+import aiohttp.web
 
 from zuul.connection import BaseConnection
 from zuul.model import TriggerEvent
@@ -64,38 +66,16 @@ class GitHubEventConnector(threading.Thread):
                 event.refspec = patchset.get('ref')
             event.approvals = data.get('approvals', [])
             event.comment = data.get('comment')
-        refupdate = data.get('refUpdate')
-        if refupdate:
-            event.project_name = refupdate.get('project')
-            event.ref = refupdate.get('refName')
-            if (self.connection.strip_branch_ref and
-                event.ref.startswith('refs/heads/')):
-                event.ref = event.ref[len('refs/heads/'):]
-            event.oldrev = refupdate.get('oldRev')
-            event.newrev = refupdate.get('newRev')
-        # Map the event types to a field name holding a Gerrit
-        # account attribute. See Gerrit stream-event documentation
-        # in cmd-stream-events.html
-        accountfield_from_type = {
-            'patchset-created': 'uploader',
-            'draft-published': 'uploader',  # Gerrit 2.5/2.6
-            'change-abandoned': 'abandoner',
-            'change-restored': 'restorer',
-            'change-merged': 'submitter',
-            'merge-failed': 'submitter',  # Gerrit 2.5/2.6
-            'comment-added': 'author',
-            'ref-updated': 'submitter',
-            'reviewer-added': 'reviewer',  # Gerrit 2.5/2.6
-        }
         try:
-            event.account = data.get(accountfield_from_type[event.type])
+            # event.account = data.get(accountfield_from_type[event.type])
+            pass
         except KeyError:
             self.log.warning("Received unrecognized event type '%s' from GitHub.\
                     Can not get account information." % event.type)
             event.account = None
 
         if (event.change_number and
-            self.connection.sched.getProject(event.project_name)):
+                self.connection.sched.getProject(event.project_name)):
             # Call _getChange for the side effect of updating the
             # cache.  Note that this modifies Change objects outside
             # the main thread.
@@ -118,6 +98,7 @@ class GitHubEventConnector(threading.Thread):
         while True:
             if self._stopped:
                 return
+            # noinspection PyBroadException
             try:
                 self._handleEvent()
             except:
@@ -130,48 +111,33 @@ class GitHubWatcher(threading.Thread):
     log = logging.getLogger("GitHub.GitHubWatcher")
     poll_timeout = 500
 
-    def __init__(self, github_connection, username, hostname, port=29418,
-                 keyfile=None, keepalive=60):
+    def __init__(self, github_connection, user, token, listen_address, listen_port, event_loop):
         threading.Thread.__init__(self)
-        self.username = username
-        self.keyfile = keyfile
-        self.hostname = hostname
-        self.port = port
+        self._event_loop = event_loop
+        self.username = user
+        self.token = token
+        self.listen_address = listen_address
+        self.listen_port = listen_port
         self.github_connection = github_connection
-        self.keepalive = keepalive
         self._stopped = False
 
-    def _read(self, fd):
-        l = fd.readline()
-        data = json.loads(l)
-        self.log.debug("Received data from GitHub event stream: \n%s" %
-                       pprint.pformat(data))
-        self.github_connection.addEvent(data)
-
-    def _listen(self, stdout, stderr):
-        poll = select.poll()
-        poll.register(stdout.channel)
-        while not self._stopped:
-            ret = poll.poll(self.poll_timeout)
-            for (fd, event) in ret:
-                if fd == stdout.channel.fileno():
-                    if event == select.POLLIN:
-                        self._read(stdout)
-                    else:
-                        raise Exception("event on ssh connection")
+    async def _githup_handle(self, request):
+        self.github_connection.addEvent(request.json())
+        return aiohttp.web.Response(text="Ok")
 
     def _run(self):
+        # noinspection PyBroadException
         try:
-            # TODO(hds)
-            pass
+            self.log.debug('Running webhooks server on address %s, port %s...' %
+                           self.listen_address, self.listen_port)
+            asyncio.set_event_loop(self._event_loop)
+            app = aiohttp.web.Application()
+            app.router.add_get('/', GitHubWatcher._githup_handle)
+
+            aiohttp.web.run_app(app)
         except:
-            self.log.exception("Exception on webhook event stream:")
+            self.log.exception("Exception on webhook")
             time.sleep(5)
-        finally:
-            # If we don't close on exceptions to connect we can leak the
-            # connection and DoS GitHub.
-            # TODO(hds)
-            pass
 
     def run(self):
         while not self._stopped:
@@ -180,6 +146,8 @@ class GitHubWatcher(threading.Thread):
     def stop(self):
         self.log.debug("Stopping watcher")
         self._stopped = True
+        self._event_loop.stop()
+        self._event_loop.close()
 
 
 class GitHubConnection(BaseConnection):
@@ -254,13 +222,14 @@ class GitHubConnection(BaseConnection):
 
     def _start_watcher_thread(self):
         self.event_queue = Queue.Queue()
+        self._event_loop = asyncio.new_event_loop()
         self.watcher_thread = GitHubWatcher(
             self,
             self.user,
-            self.server,
-            self.port,
-            keyfile=self.keyfile,
-            keepalive=self.keepalive)
+            self.token,
+            self.listen_address,
+            self.listen_port,
+            self._event_loop)
         self.watcher_thread.start()
 
     def _stop_event_connector(self):
