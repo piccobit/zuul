@@ -21,6 +21,11 @@ level=DEBUG
 handlers=debug,normal
 qualname=gerrit
 
+[logger_github]
+level=DEBUG
+handlers=debug,normal
+qualname=github
+
 [handler_console]
 level=WARNING
 class=StreamHandler

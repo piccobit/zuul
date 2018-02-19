@@ -47,7 +47,7 @@ def configure_connections(config):
             connections[con_name] = \
                 zuul.connection.gerrit.GerritConnection(con_name,
                                                         con_config)
-        if con_driver == 'github':
+        elif con_driver == 'github':
             connections[con_name] = \
                 zuul.connection.github.GitHubConnection(con_name,
                                                         con_config)

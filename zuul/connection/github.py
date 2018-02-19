@@ -13,16 +13,18 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import asyncio
+# import asyncio
 import threading
 import json
 import time
 from six.moves import queue as Queue
 import logging
 import pprint
+import traceback
 import voluptuous as v
 
-import aiohttp.web
+# from aiohttp import web
+import bottle
 
 from zuul.connection import BaseConnection
 from zuul.model import TriggerEvent
@@ -108,12 +110,11 @@ class GitHubEventConnector(threading.Thread):
 
 
 class GitHubWatcher(threading.Thread):
-    log = logging.getLogger("GitHub.GitHubWatcher")
+    log = logging.getLogger("github.GitHubWatcher")
     poll_timeout = 500
 
-    def __init__(self, github_connection, user, token, listen_address, listen_port, event_loop):
+    def __init__(self, github_connection, user, token, listen_address, listen_port):
         threading.Thread.__init__(self)
-        self._event_loop = event_loop
         self.username = user
         self.token = token
         self.listen_address = listen_address
@@ -121,22 +122,21 @@ class GitHubWatcher(threading.Thread):
         self.github_connection = github_connection
         self._stopped = False
 
-    async def _githup_handle(self, request):
-        self.github_connection.addEvent(request.json())
-        return aiohttp.web.Response(text="Ok")
+        self.log.debug('Running webhooks server on address %s, port %s...' %
+                       (self.listen_address, self.listen_port))
+
+    def _github_handle(self):
+        # self.github_connection.addEvent(bottle.request.json())
+        return "OK"
 
     def _run(self):
         # noinspection PyBroadException
         try:
-            self.log.debug('Running webhooks server on address %s, port %s...' %
-                           self.listen_address, self.listen_port)
-            asyncio.set_event_loop(self._event_loop)
-            app = aiohttp.web.Application()
-            app.router.add_get('/', GitHubWatcher._githup_handle)
-
-            aiohttp.web.run_app(app)
+            bottle.route("/payload", callback=self._github_handle)
+            bottle.run(host=self.listen_address, port=self.listen_port)
         except:
             self.log.exception("Exception on webhook")
+            traceback.print_exc()
             time.sleep(5)
 
     def run(self):
@@ -146,11 +146,10 @@ class GitHubWatcher(threading.Thread):
     def stop(self):
         self.log.debug("Stopping watcher")
         self._stopped = True
-        self._event_loop.stop()
-        self._event_loop.close()
 
 
 class GitHubConnection(BaseConnection):
+
     driver_name = 'github'
     log = logging.getLogger("zuul.GitHubConnection")
 
@@ -167,6 +166,7 @@ class GitHubConnection(BaseConnection):
 
         self.user = self.connection_config.get('user')
         self.token = self.connection_config.get('token')
+
         self.listen_address = self.connection_config.get('listen_address', '127.0.0.1')
         self.listen_port = int(self.connection_config.get('listen_port', 8989))
 
@@ -222,14 +222,12 @@ class GitHubConnection(BaseConnection):
 
     def _start_watcher_thread(self):
         self.event_queue = Queue.Queue()
-        self._event_loop = asyncio.new_event_loop()
         self.watcher_thread = GitHubWatcher(
             self,
             self.user,
             self.token,
             self.listen_address,
-            self.listen_port,
-            self._event_loop)
+            self.listen_port)
         self.watcher_thread.start()
 
     def _stop_event_connector(self):
