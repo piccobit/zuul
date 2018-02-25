@@ -13,18 +13,17 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-# import asyncio
+import asyncio
 import threading
 import json
 import time
 from six.moves import queue as Queue
 import logging
 import pprint
-import traceback
 import voluptuous as v
 
-# from aiohttp import web
-import bottle
+from aiohttp import web
+from aiohttp_threaded import AIOHttpThreaded
 
 from zuul.connection import BaseConnection
 from zuul.model import TriggerEvent
@@ -109,47 +108,45 @@ class GitHubEventConnector(threading.Thread):
                 self.connection.eventDone()
 
 
-class GitHubWatcher(threading.Thread):
+class GitHubWatcher(AIOHttpThreaded):
     log = logging.getLogger("github.GitHubWatcher")
     poll_timeout = 500
 
-    def __init__(self, github_connection, user, token, listen_address, listen_port):
-        threading.Thread.__init__(self)
+    def __init__(self, github_connection, user, token, listen_address, listen_port, event_loop):
+        super(GitHubWatcher, self).__init__(listen_address, listen_port, event_loop)
+        self._event_loop = event_loop
         self.username = user
         self.token = token
-        self.listen_address = listen_address
-        self.listen_port = listen_port
         self.github_connection = github_connection
         self._stopped = False
 
-        self.log.debug('Running webhooks server on address %s, port %s...' %
-                       (self.listen_address, self.listen_port))
+    async def post_root(self, request):
+        self.log.debug("github.GitHubWatcher.post_root")
 
-    def _github_handle(self):
-        # self.github_connection.addEvent(bottle.request.json())
-        return "OK"
+        status_code = 200
+        text = "OK"
 
-    def _run(self):
-        # noinspection PyBroadException
-        try:
-            bottle.route("/payload", callback=self._github_handle)
-            bottle.run(host=self.listen_address, port=self.listen_port)
-        except:
-            self.log.exception("Exception on webhook")
-            traceback.print_exc()
-            time.sleep(5)
+        if "X-GITHUB-EVENT" in request.headers:
+            if request.headers["X-GITHUB-EVENT"] == "push":
+                post_request = await request.post()
+                data = {"change": "push", "request": post_request}
+                self.log.debug("Received data from GitHub webhook: \n%s" % data)
+                self.github_connection.addEvent(data)
 
-    def run(self):
-        while not self._stopped:
-            self._run()
+        else:
+            status_code = 404
+            text = "NOK"
 
-    def stop(self):
-        self.log.debug("Stopping watcher")
-        self._stopped = True
+        return web.Response(status=status_code, text=text)
+
+    async def get_hello(self, request):
+        self.log.debug("github.GitHubWatcher.get_hello")
+        name = request.match_info.get("name", "Anonymous")
+        text = f"Hello {name}!"
+        return web.Response(text=text)
 
 
 class GitHubConnection(BaseConnection):
-
     driver_name = 'github'
     log = logging.getLogger("zuul.GitHubConnection")
 
@@ -166,12 +163,12 @@ class GitHubConnection(BaseConnection):
 
         self.user = self.connection_config.get('user')
         self.token = self.connection_config.get('token')
-
         self.listen_address = self.connection_config.get('listen_address', '127.0.0.1')
         self.listen_port = int(self.connection_config.get('listen_port', 8989))
 
         self._change_cache = {}
         self.github_event_connector = None
+        self._routes = None
 
     def getCachedChange(self, key):
         if key in self._change_cache:
@@ -222,12 +219,17 @@ class GitHubConnection(BaseConnection):
 
     def _start_watcher_thread(self):
         self.event_queue = Queue.Queue()
+
         self.watcher_thread = GitHubWatcher(
             self,
             self.user,
             self.token,
             self.listen_address,
             self.listen_port)
+
+        self._routes = [web.post("/", self.watcher_thread.post_root),
+                        web.get("/hello/{name}", self.watcher_thread.get_hello)]
+        self.watcher_thread.add_routes(self._routes)
         self.watcher_thread.start()
 
     def _stop_event_connector(self):
