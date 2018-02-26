@@ -1077,15 +1077,10 @@ class TriggerEvent(object):
                     ['{}:{}'.format(a['type'], a['value']) for a in self.approvals])
             ret += '>'
         elif self.type == "github":
-            ret = '<TriggerEvent {} {}'.format(self.type, self.project_name)
+            ret = '<TriggerEvent {} {}'.format(self.type, self.full_name)
 
             if self.branch:
                 ret += " {}".format(self.branch)
-            if self.change_number:
-                ret += " {},{}".format(self.change_number, self.patch_number)
-            if self.approvals:
-                ret += ' ' + ', '.join(
-                    ['{}:{}'.format(a['type'], a['value']) for a in self.approvals])
             ret += '>'
         else:
             ret = f"*** ERROR: Unknown type '{self.type}"
