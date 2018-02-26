@@ -1065,7 +1065,7 @@ class TriggerEvent(object):
         self.number = None
 
     def __repr__(self):
-        if self.type =="gerrit":
+        if self.type == "gerrit":
             ret = '<TriggerEvent {} {}'.format(self.type, self.project_name)
 
             if self.branch:
@@ -1087,7 +1087,7 @@ class TriggerEvent(object):
                 ret += ' ' + ', '.join(
                     ['{}:{}'.format(a['type'], a['value']) for a in self.approvals])
             ret += '>'
-        else
+        else:
             ret = f"*** ERROR: Unknown type '{self.type}"
 
         return ret
