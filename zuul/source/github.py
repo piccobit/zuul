@@ -12,10 +12,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-#
-# TODO(hds)
-#
-
 import logging
 import re
 import time
@@ -38,6 +34,7 @@ def detect_cycle(change, history=None):
         detect_cycle(dep, history)
 
 
+# TODO(hds)
 class GitHubSource(BaseSource):
     name = 'github'
     log = logging.getLogger("zuul.GitHubtSource")

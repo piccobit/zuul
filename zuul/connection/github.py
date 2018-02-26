@@ -13,10 +13,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-#
-# TODO(hds)
-#
-
 import threading
 import time
 from six.moves import queue as Queue
@@ -30,6 +26,7 @@ from zuul.connection import BaseConnection
 from zuul.model import TriggerEvent
 
 
+# TODO(hds)
 class GitHubEventConnector(threading.Thread):
     """Move events from GitHub to the scheduler."""
 

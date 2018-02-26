@@ -12,10 +12,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-#
-# TODO(hds)
-#
-
 import logging
 import voluptuous as v
 
@@ -23,6 +19,7 @@ import voluptuous as v
 from zuul.reporter import BaseReporter
 
 
+# TODO(hds)
 class GitHubReporter(BaseReporter):
     """Sends off reports to GitHub."""
 

@@ -15,10 +15,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-#
-# TODO(hds)
-#
-
 import extras
 import json
 import logging
@@ -438,6 +434,7 @@ class Scheduler(threading.Thread):
             pipeline = Pipeline(conf_pipeline['name'])
             pipeline.description = conf_pipeline.get('description')
             # TODO(jeblair): remove backwards compatibility:
+            # TODO(hds)
             pipeline.source = self._getSourceDriver(
                 conf_pipeline.get('source', 'gerrit'))
             precedence = model.PRECEDENCE_MAP[conf_pipeline.get('precedence')]
@@ -657,6 +654,7 @@ class Scheduler(threading.Thread):
         self.log.debug("Adding trigger event: %s" % event)
         # noinspection PyBroadException
         try:
+            # TODO(hds)
             if statsd:
                 statsd.incr('gerrit.event.%s' % event.type)
         except:

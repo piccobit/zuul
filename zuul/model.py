@@ -12,10 +12,6 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-#
-# TODO(hds)
-#
-
 import copy
 import os
 import re
@@ -1061,6 +1057,7 @@ class TriggerEvent(object):
         # For events that arrive with a destination pipeline (eg, from
         # an admin command, etc):
         self.forced_pipeline = None
+        # TODO(hds)
         # GitHub attributes
         self.full_name= None
         self.sha = None
