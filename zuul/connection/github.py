@@ -13,13 +13,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
-import asyncio
+#
+# TODO(hds)
+#
+
 import threading
-import json
 import time
 from six.moves import queue as Queue
 import logging
-import pprint
 import voluptuous as v
 
 from aiohttp import web
@@ -52,47 +53,18 @@ class GitHubEventConnector(threading.Thread):
             return
 
         event = TriggerEvent()
-        event.type = data.get('type')
+        event.type = data['change']
         event.trigger_name = 'GitHub'
-        change = data.get('change')
+        request = data['request']
 
-        if change:
-            event.project_name = change.get('project')
-            event.branch = change.get('branch')
-            event.change_number = str(change.get('number'))
-            event.change_url = change.get('url')
-            patchset = data.get('patchSet')
-            if patchset:
-                event.patch_number = patchset.get('number')
-                event.refspec = patchset.get('ref')
-            event.approvals = data.get('approvals', [])
-            event.comment = data.get('comment')
-        try:
-            # event.account = data.get(accountfield_from_type[event.type])
-            pass
-        except KeyError:
+        if event.type == "push":
+            event.full_name = request["repository"]["full_name"]
+            event.sha = request["payload"]["after"]
+            self.log.info("full_name: %s, sha: %s" % (event.full_name, event.sha))
+        else:
             self.log.warning("Received unrecognized event type '%s' from GitHub.\
                     Can not get account information." % event.type)
-            event.account = None
 
-        if (event.change_number and
-                self.connection.sched.getProject(event.project_name)):
-            # Call _getChange for the side effect of updating the
-            # cache.  Note that this modifies Change objects outside
-            # the main thread.
-            # NOTE(jhesketh): Ideally we'd just remove the change from the
-            # cache to denote that it needs updating. However the change
-            # object is already used by Item's and hence BuildSet's etc. and
-            # we need to update those objects by reference so that they have
-            # the correct/new information and also avoid hitting GitHub
-            # multiple times.
-            if self.connection.attached_to['source']:
-                self.connection.attached_to['source'][0]._getChange(
-                    event.change_number, event.patch_number, refresh=True)
-                # We only need to do this once since the connection maintains
-                # the cache (which is shared between all the sources)
-                # NOTE(jhesketh): We may couple sources and connections again
-                # at which point this becomes more sensible.
         self.connection.sched.addEvent(event)
 
     def run(self):

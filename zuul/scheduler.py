@@ -15,6 +15,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 
+#
+# TODO(hds)
+#
+
 import extras
 import json
 import logging
@@ -354,14 +358,17 @@ class Scheduler(threading.Thread):
         drivers = {
             'source': {
                 'gerrit': 'zuul.source.gerrit:GerritSource',
+                'github': 'zuul.source.github:GitHubSource',
             },
             'trigger': {
                 'gerrit': 'zuul.trigger.gerrit:GerritTrigger',
+                'github': 'zuul.trigger.github:GitHubTrigger',
                 'timer': 'zuul.trigger.timer:TimerTrigger',
                 'zuul': 'zuul.trigger.zuultrigger:ZuulTrigger',
             },
             'reporter': {
                 'gerrit': 'zuul.reporter.gerrit:GerritReporter',
+                'github': 'zuul.reporter.github:GitHubReporter',
                 'smtp': 'zuul.reporter.smtp:SMTPReporter',
                 'sql': 'zuul.reporter.sql:SQLReporter',
             },
